@@ -10,7 +10,7 @@ const rimraf = require('rimraf').sync;
 
 const filesRead = {};
 
-const dist = path.join(__dirname, 'dist');
+const dist = path.join(__dirname, 'webtorrent-dist');
 rimraf(dist);
 
 function readFile(filename) {
