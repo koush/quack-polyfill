@@ -15,14 +15,16 @@ interface WebTorrent : EventEmitter {
 }
 
 fun WebTorrent.add(torrentId: String, options: JavaScriptObject, callback: (torrent: Torrent) -> Unit) {
-    add(torrentId, options, TorrentCallback {
+    add(torrentId, options) {
         callback(it)
-    })
+    }
 }
 
 fun <T> JavaScriptObject.forOf(clazz: Class<T>, callback: (value: T) -> Unit) {
-    val cb = ValueCallback {
-        callback(quackContext.coerceJavaScriptToJava(clazz, it) as T)
+    val cb: ValueCallback = object : ValueCallback {
+        override fun invoke(value: Any?) {
+            callback(quackContext.coerceJavaScriptToJava(clazz, value) as T)
+        }
     }
 
     quackContext.evaluateForJavaScriptObject("(function(thiz, cb) { for (let value of thiz) { cb(value); } })").call(this,
@@ -51,3 +53,12 @@ interface TorrentFile : QuackJavaScriptObject {
     @get:QuackProperty(name = "length")
     val length: Int
 }
+
+interface TorrentCallback {
+    operator fun invoke(torrent: Torrent?)
+}
+
+interface ValueCallback {
+    operator fun invoke(value: Any?)
+}
+
