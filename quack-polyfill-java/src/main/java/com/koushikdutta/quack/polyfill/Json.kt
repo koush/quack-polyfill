@@ -4,7 +4,6 @@ import com.google.gson.*
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackContext
 import com.koushikdutta.quack.QuackJsonObject
-import com.koushikdutta.quack.polyfill.dgram.UdpAddress
 import java.lang.reflect.Type
 import java.util.*
 
@@ -23,7 +22,8 @@ internal fun <T> jsonCoerce(clazz: Class<T>, value: T) : QuackJsonObject {
     return QuackJsonObject(gson.toJson(value, clazz))
 }
 
-internal fun <T> QuackContext.putJavaToJsonCoersion(clazz: Class<T>) {
+// move to quack extensions.kt?
+public fun <T> QuackContext.putJavaToJsonCoersion(clazz: Class<T>) {
     putJavaToJavaScriptCoercion(clazz) { _, o ->
         jsonCoerce(clazz, o)
     }

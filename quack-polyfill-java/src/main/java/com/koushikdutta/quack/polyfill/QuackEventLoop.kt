@@ -9,6 +9,7 @@ import com.koushikdutta.quack.polyfill.fs.FsModule
 import com.koushikdutta.quack.polyfill.net.NetModule
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.quack.polyfill.job.installJobScheduler
+import com.koushikdutta.quack.polyfill.os.OSModule
 import com.koushikdutta.quack.polyfill.tls.TlsModule
 import com.koushikdutta.quack.polyfill.xmlhttprequest.XMLHttpRequest
 import com.koushikdutta.scratch.buffers.ByteBuffer
@@ -32,6 +33,7 @@ class QuackEventLoop(val loop: AsyncEventLoop, val quack: QuackContext) {
         modules["net"] = NetModule(this, modules)
         modules["tls"] = TlsModule(this, modules)
         modules["fs"] = FsModule(this, modules)
+        modules["os"] = OSModule(this, modules)
         modules["crypto"] = CryptoModule(this, modules)
         modules["dns"] = DnsModule(this, modules)
         val client = AsyncHttpClient(loop)
