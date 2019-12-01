@@ -174,7 +174,7 @@ let process = {};
 process = require('process');
 // for debug module
 process.type = 'renderer';
-// process.env.DEBUG = '*';
+process.env.DEBUG = '*';
 global.process = process;
 global.Buffer = require('buffer').Buffer;
 

@@ -30,11 +30,11 @@ class PolyfillTests {
         init {
             // for non-android jvm
             try {
-                System.load(File("quack/quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
+                System.load(File("../quack/quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
             }
             catch (e: Error) {
                 try {
-                    System.load(File("../quack/quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
+                    System.load(File("../../quack/quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
                 }
                 catch (e: Error) {
                     throw AssertionError("jni load failed")
@@ -124,7 +124,7 @@ class PolyfillTests {
 
         val chunkStore = modules.require("memory-chunk-store")
         val webtorrentOptions = quackLoop.quack.evaluateForJavaScriptObject("({})")
-//        webtorrentOptions.set("store", chunkStore)
+        webtorrentOptions.set("store", chunkStore)
 
         quackLoop.quack.putJavaToJsonCoersion(TorrentReadStreamOptions::class.java)
 
