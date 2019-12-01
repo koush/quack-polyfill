@@ -46,7 +46,7 @@ class TlsModule(val quackLoop: QuackEventLoop, val modules: Modules) {
 
         socketClass = mixinExtend(ctx, duplexClass, DuplexStream::class.java, TlsSocket::class.java, "TLSSocket") { stream, arguments ->
             val parser = ArgParser(quackLoop.quack, *arguments)
-            val options = parser(CreateSocketOptions::class.java)
+            val options = parser.Coerce(CreateSocketOptions::class.java)
 
             TlsSocketImpl(quackLoop, stream, options)
         }
@@ -58,19 +58,19 @@ class TlsModule(val quackLoop: QuackEventLoop, val modules: Modules) {
 
     fun connect(vararg arguments: Any?): JavaScriptObject {
         val parser = ArgParser(quackLoop.quack, *arguments)
-        val options = parser(JavaScriptObject::class.java)
+        val options = parser.Object()
         if (options != null) {
             val socket = newSocket(options)
             val mixin = socket.getMixin(TlsSocketImpl::class.java)
-            mixin.connect(ctx.coerceJavaScriptToJava(ConnectSocketOptions::class.java, options) as ConnectSocketOptions, parser(JavaScriptObject::class.java))
+            mixin.connect(ctx.coerceJavaScriptToJava(ConnectSocketOptions::class.java, options) as ConnectSocketOptions, parser.Function())
             return socket
         }
 
-        val port = parser(Int::class.java)!!
-        val host = parser(String::class.java)
+        val port = parser.Int()!!
+        val host = parser.String()
         val socket = newSocket(null)
         val mixin = socket.getMixin(TlsSocketImpl::class.java)
-        mixin.connect(port, host, parser(JavaScriptObject::class.java))
+        mixin.connect(port, host, parser.Function())
         return socket
     }
 }

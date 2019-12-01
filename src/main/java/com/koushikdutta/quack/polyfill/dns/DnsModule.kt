@@ -1,9 +1,8 @@
 package com.koushikdutta.quack.polyfill.dns
 
 import com.koushikdutta.quack.JavaScriptObject
+import com.koushikdutta.quack.polyfill.*
 import com.koushikdutta.quack.polyfill.ArgParser
-import com.koushikdutta.quack.polyfill.QuackEventLoop
-import com.koushikdutta.quack.polyfill.callSafely
 import com.koushikdutta.quack.polyfill.jsonCoerce
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.async
@@ -19,28 +18,11 @@ class LookupOptions {
 }
 
 class DnsModule(val quackLoop: QuackEventLoop, val modules: Modules) {
-    init {
-        quackLoop.quack.putJavaScriptToJavaCoercion(LookupOptions::class.java) { clazz, lookupOptions ->
-            (lookupOptions as JavaScriptObject).jsonCoerce(LookupOptions::class.java)
-        }
-    }
-
-
     fun lookup(hostname: String, vararg arguments: Any?) {
         val parser = ArgParser(quackLoop.quack, *arguments)
-        val o1 = parser(JavaScriptObject::class.java)
-        val o2 = parser(JavaScriptObject::class.java)
 
-        val options: LookupOptions
-        val callback: JavaScriptObject
-        if (o2 == null) {
-            options = LookupOptions()
-            callback = o1!!
-        }
-        else {
-            options = quackLoop.quack.coerceJavaScriptToJava(LookupOptions::class.java, o1) as LookupOptions
-            callback = o2
-        }
+        val options = parser.Object()?.jsonCoerce(LookupOptions::class.java) ?: LookupOptions()
+        val callback = parser.Function()!!
 
         quackLoop.loop.async {
             try {

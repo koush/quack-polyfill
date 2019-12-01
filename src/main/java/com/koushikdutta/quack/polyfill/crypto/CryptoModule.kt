@@ -3,9 +3,9 @@ package com.koushikdutta.quack.polyfill.crypto
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackMethodObject
 import com.koushikdutta.quack.QuackProperty
+import com.koushikdutta.quack.polyfill.*
 import com.koushikdutta.quack.polyfill.ArgParser
-import com.koushikdutta.quack.polyfill.QuackEventLoop
-import com.koushikdutta.quack.polyfill.callSafely
+import com.koushikdutta.quack.polyfill.Int
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import java.lang.Exception
@@ -52,8 +52,8 @@ class CryptoModule(val quackLoop: QuackEventLoop, modules: Modules) {
     val randomBytes = object : QuackMethodObject {
         override fun callMethod(thiz: Any?, vararg args: Any?): Any? {
             val parser = ArgParser(quackLoop.quack, *args)
-            val size = parser(Int::class.java)!!
-            val callback = parser(JavaScriptObject::class.java)
+            val size = parser.Int()!!
+            val callback = parser.Function()
             val bytes = Random.nextBytes(size)
             val buffer = bufferClass.callProperty("from", ByteBuffer.wrap(bytes)) as JavaScriptObject
             if (callback == null)

@@ -128,13 +128,13 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
 
     override fun listen(vararg arguments: Any?) {
         val parser = ArgParser(quackLoop.quack, *arguments)
-        val options = parser(JavaScriptObject::class.java)
+        val options = parser.Object()
         if (options != null) {
-            listenInternal(quackLoop.quack.coerceJavaScriptToJava(ServerListenOptions::class.java, options) as ServerListenOptions, parser(JavaScriptObject::class.java))
+            listenInternal(quackLoop.quack.coerceJavaScriptToJava(ServerListenOptions::class.java, options) as ServerListenOptions, parser.Function())
             return
         }
 
-        listenInternal(parser(Int::class.java), parser(String::class.java), parser(JavaScriptObject::class.java))
+        listenInternal(parser.Int(), parser.String(), parser.Function())
     }
 
     override fun address(): SocketAddress? {
@@ -179,15 +179,14 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
     override fun connect(vararg arguments: Any?) {
         val parser = ArgParser(quackLoop.quack, *arguments)
-        val options = parser(JavaScriptObject::class.java)
+        val options = parser.Object()?.jsonCoerce(ConnectSocketOptions::class.java)
         if (options != null) {
-            val cso = quackLoop.quack.coerceJavaScriptToJava(ConnectSocketOptions::class.java, options) as ConnectSocketOptions
-            connectInternal(cso, parser(JavaScriptObject::class.java))
+            connectInternal(options, parser.Function())
             return
         }
 
-        val port = parser(Int::class.java)!!
-        connectInternal(port, parser(String::class.java), parser(JavaScriptObject::class.java))
+        val port = parser.Int()!!
+        connectInternal(port, parser.String(), parser.Function())
     }
 
     private fun connectInternal(options: ConnectSocketOptions, connectListener: JavaScriptObject?) {
@@ -285,14 +284,6 @@ open class NetModule(val quackLoop: QuackEventLoop, modules: Modules) {
             jsonCoerce(SocketAddress::class.java, o)
         }
 
-        ctx.putJavaScriptToJavaCoercion(ConnectSocketOptions::class.java) { clazz, o ->
-            (o as JavaScriptObject).jsonCoerce(ConnectSocketOptions::class.java)
-        }
-
-        ctx.putJavaScriptToJavaCoercion(CreateSocketOptions::class.java) { clazz, o ->
-            (o as JavaScriptObject).jsonCoerce(CreateSocketOptions::class.java)
-        }
-
         duplexClass = modules.require("stream").get("Duplex") as JavaScriptObject
 
         val eventEmitterClass = modules.require("events")
@@ -302,15 +293,15 @@ open class NetModule(val quackLoop: QuackEventLoop, modules: Modules) {
             it[0]
         }) { stream, arguments ->
             val parser = ArgParser(quackLoop.quack, *arguments)
-            val options = parser(CreateSocketOptions::class.java)
+            val options = parser.Coerce(CreateSocketOptions::class.java)
 
             SocketImpl(quackLoop, stream, options)
         }
 
         serverClass = mixinExtend(ctx, eventEmitterClass, EventEmitter::class.java, Server::class.java, "Server") { eventEmitter, arguments ->
             val parser = ArgParser(quackLoop.quack, *arguments)
-            val options = parser(CreateServerOptions::class.java)
-            val connectionListener = parser(JavaScriptObject::class.java)
+            val options = parser.Coerce(CreateServerOptions::class.java)
+            val connectionListener = parser.Function()
             if (connectionListener != null)
                 eventEmitter.on("connection", connectionListener)
 
@@ -328,19 +319,19 @@ open class NetModule(val quackLoop: QuackEventLoop, modules: Modules) {
 
     fun createConnection(vararg arguments: Any?): JavaScriptObject {
         val parser = ArgParser(quackLoop.quack, *arguments)
-        val options = parser(JavaScriptObject::class.java)
+        val options = parser.Object()
         if (options != null) {
             val socket = newSocket(options)
             val mixin = socket.getMixin(SocketImpl::class.java)
-            mixin.connect(options, parser(JavaScriptObject::class.java))
+            mixin.connect(options, parser.Function())
             return socket
         }
 
-        val port = parser(Int::class.java)!!
-        val host = parser(String::class.java)
+        val port = parser.Int()!!
+        val host = parser.String()
         val socket = newSocket(null)
         val mixin = socket.getMixin(SocketImpl::class.java)
-        mixin.connect(port, host, parser(JavaScriptObject::class.java))
+        mixin.connect(port, host, parser.Function())
         return socket
     }
 

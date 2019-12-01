@@ -32,15 +32,20 @@ fun Stream.createAsyncRead(ctx: QuackContext): AsyncRead {
         yielder.resume()
     }
 
-    return read@{
-        val buffer = read()
-        if (buffer == null) {
-            yielder.yield()
-            return@read more
+    return asyncIterator<ByteBuffer> {
+        while (more) {
+            val buffer = read()
+            if (buffer == null) {
+                // stream could not fullfill a read request, so yield until the next
+                // readable event.
+                yielder.yield()
+                continue
+            }
+
+            yield(buffer)
         }
-        it.add(buffer)
-        true
     }
+    .createAsyncRead()
 }
 
 interface ReadableStream : EventEmitter {

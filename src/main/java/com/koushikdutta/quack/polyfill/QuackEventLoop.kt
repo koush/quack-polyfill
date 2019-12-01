@@ -48,4 +48,3 @@ fun JavaScriptObject.toByteBuffer(): ByteBuffer {
     buffer.limit(byteOffset + length)
     return buffer
 }
-

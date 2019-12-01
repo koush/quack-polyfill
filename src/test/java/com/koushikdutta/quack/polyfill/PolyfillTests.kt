@@ -10,9 +10,15 @@ import com.koushikdutta.quack.polyfill.require.installModules
 import com.koushikdutta.quack.polyfill.xmlhttprequest.XMLHttpRequest
 import com.koushikdutta.scratch.*
 import com.koushikdutta.scratch.http.AsyncHttpResponse
+import com.koushikdutta.scratch.http.Headers
 import com.koushikdutta.scratch.http.OK
+import com.koushikdutta.scratch.http.ResponseLine
+import com.koushikdutta.scratch.http.body.BinaryBody
 import com.koushikdutta.scratch.http.body.Utf8StringBody
+import com.koushikdutta.scratch.http.client.AsyncHttpClient
+import com.koushikdutta.scratch.http.server.AsyncHttpRouter
 import com.koushikdutta.scratch.http.server.AsyncHttpServer
+import com.koushikdutta.scratch.http.server.get
 import org.junit.Test
 import java.io.File
 import java.io.PrintStream
@@ -24,11 +30,11 @@ class PolyfillTests {
         init {
             // for non-android jvm
             try {
-                System.load(File("quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
+                System.load(File("quack/quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
             }
             catch (e: Error) {
                 try {
-                    System.load(File("../quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
+                    System.load(File("../quack/quack-jni/build/lib/main/debug/libquack-jni.dylib").getCanonicalPath());
                 }
                 catch (e: Error) {
                     throw AssertionError("jni load failed")
@@ -105,104 +111,98 @@ class PolyfillTests {
         }
     }
 
-//    @Test
-//    fun testTorrentServe() {
-//        val quackLoop = QuackEventLoop()
-//        quackLoop.installJobScheduler()
-////        quackLoop.quack.waitForDebugger("localhost:6666")
-//        quackLoop.quack.globalObject.set("console", Console(quackLoop.quack, System.out, System.err))
-//
-//        val modules = quackLoop.quack.loadModules()
-//        modules.installCoreModule("dgram", DgramModule(quackLoop, modules))
-//        modules.installCoreModule("net", NetModule(quackLoop, modules))
-//        modules.installCoreModule("tls", TlsModule(quackLoop, modules))
-//        modules.installCoreModule("fs", FsModule(quackLoop, modules))
-//        modules.installCoreModule("crypto", CryptoModule(quackLoop, modules))
-//        modules.installCoreModule("dns", DnsModule(quackLoop, modules))
-//        val client = AsyncHttpClient(quackLoop.loop)
-//        quackLoop.quack.globalObject.set("XMLHttpRequest", XMLHttpRequest.Constructor(quackLoop.quack, client))
-//
-//        val chunkStore = modules.require("memory-chunk-store")
-//        val webtorrentOptions = quackLoop.quack.evaluateForJavaScriptObject("({})")
+    @Test
+    fun testTorrentServe() {
+        val quackLoop = QuackEventLoop()
+        val modules = quackLoop.quack.loadModules()
+        quackLoop.installDefaultModules(modules)
+//        quackLoop.quack.waitForDebugger("localhost:6666")
+        quackLoop.quack.globalObject.set("console", Console(quackLoop.quack, System.out, System.err))
+
+        val client = AsyncHttpClient(quackLoop.loop)
+        quackLoop.quack.globalObject.set("XMLHttpRequest", XMLHttpRequest.Constructor(quackLoop.quack, client))
+
+        val chunkStore = modules.require("memory-chunk-store")
+        val webtorrentOptions = quackLoop.quack.evaluateForJavaScriptObject("({})")
 //        webtorrentOptions.set("store", chunkStore)
-//
-//        quackLoop.quack.putJavaToJsonCoersion(TorrentReadStreamOptions::class.java)
-//
-//        val router = AsyncHttpRouter()
-//        val server = AsyncHttpServer(router::handle)
-//
-//        quackLoop.loop.async {
-//            val serverSocket = listen()
-//            server.listen(serverSocket)
-//            println("http://localhost:${serverSocket.localPort}/")
-//
-//            val phantomMenance = "magnet:?xt=urn:btih:f105dd901e63e3319c2b259b055fbb6e08a65ab5&dn=Star+Wars%3A+Episode+I+-+The+Phantom+Menace+%281999%29+1080p+BrRip+x26&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fzer0day.ch%3A1337&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969"
-//            val sintel = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fsintel.torrent"
-//            val webTorrent = modules.require("webtorrent").constructCoerced(WebTorrent::class.java)
-//            webTorrent.add(sintel,
-//                    webtorrentOptions) { torrent ->
-//                val jo = torrent.javaScriptObject
-//                val pieces = jo.get("pieces") as JavaScriptObject
-//                val numPieces = pieces.get("length") as Int
-////                torrent.deselect(0, numPieces - 1, false)
-////                torrent.pause()
-//                (jo.get("files") as JavaScriptObject).forOf(TorrentFile::class.java) {
-//                    println(it.name)
-////                    it.deselect()
-//
-//                    println("http://localhost:${serverSocket.localPort}/${it.name}")
-//                    router.get("/${it.name}") { request, match ->
-////                        it.select()
-////                        torrent.resume()
-//                        val range = request.headers.get("range")
-//                        val totalLength = it.length.toLong()
-//                        var start = 0L
-//                        var end: Long = totalLength - 1L
-//                        var code = 200
-//
-//                        val headers = Headers()
-//                        if (range != null) {
-//                            var parts = range.split("=").toTypedArray()
-//                            // Requested range not satisfiable
-//                            if (parts.size != 2 || "bytes" != parts[0])
-//                                return@get AsyncHttpResponse(ResponseLine(416, "Not Satisfiable", "HTTP/1.1"))
-//
-//                            parts = parts[1].split("-").toTypedArray()
-//                            try {
-//                                if (parts.size > 2) throw IllegalArgumentException()
-//                                if (!parts[0].isEmpty()) start = parts[0].toLong()
-//                                end = if (parts.size == 2 && !parts[1].isEmpty()) parts[1].toLong() else totalLength - 1
-//                                code = 206
-//                                headers.set("Content-Range", "bytes $start-$end/$totalLength")
-//                            } catch (e: java.lang.Exception) {
-//                                return@get AsyncHttpResponse(ResponseLine(416, "Not Satisfiable", "HTTP/1.1"))
-//                            }
-//                        }
-//
-//
-//                        val options = TorrentReadStreamOptions()
-//                        options.start = start.toInt()
-//                        options.end = end.toInt()
-//                        headers.set("Content-Length", it.length.toString())
-//                        headers.set("Accept-Ranges", "bytes")
-//
-//                        val stream = it.createReadStream(options)
-//                        if (code == 200)
-//                            AsyncHttpResponse.OK(body = BinaryBody(stream.createAsyncRead(quackLoop.quack)), headers = headers)
-//                        else
-//                            AsyncHttpResponse(body = BinaryBody(stream.createAsyncRead(quackLoop.quack)), headers = headers, responseLine = ResponseLine(code, "Partial Content", "HTTP/1.1"))
-//                    }
-//                    println("done")
-//                }
-//            }
-//
-//        }
-//
-////        val torrentFile =  "/Volumes/Dev/quackfill/quack-polyfill/node/wt.js"
-////        modules.require(torrentFile)
-//
-//        quackLoop.loop.run()
-//    }
+
+        quackLoop.quack.putJavaToJsonCoersion(TorrentReadStreamOptions::class.java)
+
+        val router = AsyncHttpRouter()
+        val server = AsyncHttpServer(router::handle)
+
+        quackLoop.loop.async {
+            val serverSocket = listen()
+            server.listen(serverSocket)
+            println("http://localhost:${serverSocket.localPort}/")
+
+            val phantomMenance = "magnet:?xt=urn:btih:f105dd901e63e3319c2b259b055fbb6e08a65ab5&dn=Star+Wars%3A+Episode+I+-+The+Phantom+Menace+%281999%29+1080p+BrRip+x26&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Fzer0day.ch%3A1337&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969"
+            val sintel = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fsintel.torrent"
+            val webTorrent = modules.require("webtorrent").constructCoerced(WebTorrent::class.java)
+            webTorrent.add(sintel,
+                    webtorrentOptions) { torrent ->
+                val jo = torrent.javaScriptObject
+                val pieces = jo.get("pieces") as JavaScriptObject
+                val numPieces = pieces.get("length") as Int
+//                torrent.deselect(0, numPieces - 1, false)
+//                torrent.pause()
+                (jo.get("files") as JavaScriptObject).forOf(TorrentFile::class.java) {
+                    println(it.name)
+//                    it.deselect()
+
+                    println("http://localhost:${serverSocket.localPort}/${it.name}")
+                    router.get("/${it.name}") { request, match ->
+//                        it.select()
+//                        torrent.resume()
+                        val range = request.headers.get("range")
+                        val totalLength = it.length.toLong()
+                        var start = 0L
+                        var end: Long = totalLength - 1L
+                        var code = 200
+
+                        val headers = Headers()
+                        if (range != null) {
+                            var parts = range.split("=").toTypedArray()
+                            // Requested range not satisfiable
+                            if (parts.size != 2 || "bytes" != parts[0])
+                                return@get AsyncHttpResponse(ResponseLine(416, "Not Satisfiable", "HTTP/1.1"))
+
+                            parts = parts[1].split("-").toTypedArray()
+                            try {
+                                if (parts.size > 2) throw IllegalArgumentException()
+                                if (!parts[0].isEmpty()) start = parts[0].toLong()
+                                end = if (parts.size == 2 && !parts[1].isEmpty()) parts[1].toLong() else totalLength - 1
+                                code = 206
+                                headers.set("Content-Range", "bytes $start-$end/$totalLength")
+                            } catch (e: java.lang.Exception) {
+                                return@get AsyncHttpResponse(ResponseLine(416, "Not Satisfiable", "HTTP/1.1"))
+                            }
+                        }
+
+
+                        val options = TorrentReadStreamOptions()
+                        options.start = start.toInt()
+                        options.end = end.toInt()
+                        headers.set("Content-Length", it.length.toString())
+                        headers.set("Accept-Ranges", "bytes")
+
+                        val stream = it.createReadStream(options)
+                        if (code == 200)
+                            AsyncHttpResponse.OK(body = BinaryBody(stream.createAsyncRead(quackLoop.quack)), headers = headers)
+                        else
+                            AsyncHttpResponse(body = BinaryBody(stream.createAsyncRead(quackLoop.quack)), headers = headers, responseLine = ResponseLine(code, "Partial Content", "HTTP/1.1"))
+                    }
+                    println("done")
+                }
+            }
+
+        }
+
+//        val torrentFile =  "/Volumes/Dev/quackfill/quack-polyfill/node/wt.js"
+//        modules.require(torrentFile)
+
+        quackLoop.loop.run()
+    }
 
     @Test
     fun testSocket() {

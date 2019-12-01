@@ -30,31 +30,42 @@ internal class ArgParser(val quack: QuackContext, vararg val arguments: Any?) {
             return null
 
         val arg = arguments[index]
-        if (arg == null)
-            return null
-
-        if (arg.`typeof`() != type)
-            return null
-
-        index++
-        return arg as T
-    }
-
-    operator fun <T> invoke(clazz: Class<T>): T? {
-        if (index >= arguments.size)
-            return null
-
-        var arg = arguments[index]
         if (arg == null) {
             index++
             return null
         }
 
-        val coerced = quack.coerceJavaScriptToJavaOrNull(clazz, arg)
-        if (coerced == null)
+        if (type == "number" && arg !is Number)
+            return null
+        else if (type == "string" && arg !is String)
+            return null
+        else if (arg.`typeof`() != type)
             return null
 
         index++
-        return coerced as T
+        return arg as T
     }
+}
+
+internal fun ArgParser.Int(): Int? {
+    return this<Number?>("number")?.toInt()
+}
+
+internal fun ArgParser.String(): String? {
+    return this("string")
+}
+
+internal fun ArgParser.Function(): JavaScriptObject? {
+    return this("function")
+}
+
+internal fun ArgParser.Object(): JavaScriptObject? {
+    return this("object")
+}
+
+internal fun <T> ArgParser.Coerce(clazz: Class<T>): T? {
+    val jo = Object()
+    if (jo == null)
+        return null
+    return jo.jsonCoerce(clazz)
 }

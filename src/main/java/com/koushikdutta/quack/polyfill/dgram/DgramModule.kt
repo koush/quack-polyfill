@@ -44,8 +44,8 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
 
     override fun connect(port: Int, vararg arguments: Any?) {
         val argParser = ArgParser(quackLoop.quack, *arguments)
-        val address: String = argParser(String::class.java) ?: "127.0.0.1"
-        val cb = argParser(JavaScriptObject::class.java)
+        val address: String = argParser.String() ?: "127.0.0.1"
+        val cb = argParser.Function()
 
         handler.post {
             try {
@@ -152,8 +152,8 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
             this.ensureSocket(address, port?.toInt(), cb);
         }
         else {
-            val port = argParser(Number::class.java)
-            val address = argParser(String::class.java)
+            val port = argParser.Int()
+            val address = argParser.String()
             val cb: JavaScriptObject? = argParser("function")
 
             this.ensureSocket(address, port?.toInt(), cb);
@@ -171,33 +171,33 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
 
     override fun send(vararg arguments: Any?) {
         val argParser = ArgParser(quackLoop.quack, *arguments)
-        val buffer = argParser(JavaScriptObject::class.java)!!.get("buffer") as ByteBuffer
-        val n1 = argParser(Number::class.java)
+        val buffer = argParser.Object()!!.get("buffer") as ByteBuffer
+        val n1 = argParser.Int()
 
-        val offset: Number?
-        val length: Number?
-        val port: Number?
+        val offset: Int?
+        val length: Int?
+        val port: Int?
         val address: String?
         if (n1 != null) {
-            val n2 = argParser(Number::class.java)
+            val n2 = argParser.Int()
             if (n2 != null) {
                 offset = n1
                 length = n2
-                port = argParser(Number::class.java)
-                address = argParser(String::class.java)
+                port = argParser.Int()
+                address = argParser.String()
             }
             else {
                 offset = null
                 length = null
                 port = n1
-                address = argParser(String::class.java)
+                address = argParser.String()
             }
         }
         else {
             offset = null
             length = null
             port = null
-            address = argParser(String::class.java)
+            address = argParser.String()
         }
 
         if (offset != null) {
@@ -208,7 +208,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
         if ((port != null).xor(address != null))
             throw IllegalArgumentException("expected both port and address on udp send")
 
-        val cb = argParser(JavaScriptObject::class.java)
+        val cb = argParser.Function()
 
         handler.post {
             try {
