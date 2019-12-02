@@ -343,4 +343,12 @@ class PolyfillTests {
         jo.call(quackLoop.loop);
         quackLoop.loop.run();
     }
+
+    @Test
+    fun testSetInterval() {
+        val quackLoop = QuackEventLoop()
+        val jo = quackLoop.quack.evaluateForJavaScriptObject("(function(loop) { var count = 0; setInterval(() => { if (count++ == 3) loop.stop() }, 500) })")
+        jo.call(quackLoop.loop);
+        quackLoop.loop.run();
+    }
 }
