@@ -50,6 +50,7 @@ fun QuackEventLoop.installJobScheduler() {
                     }
 
                     reschedule();
+                    return timeout;
                 }
 
                 function clear(timeout) {
@@ -83,10 +84,10 @@ fun QuackEventLoop.installJobScheduler() {
     val installTimeouts = ctx.coerceJavaScriptToJava(InstallTimeouts::class.java, module.get("installTimeouts") as JavaScriptObject) as InstallTimeouts
     val timeoutCallback = (module.get("timeoutCallback") as JavaScriptObject)
 
-    val timeouts = mutableMapOf<Int, Cancellable>()
+    val timeouts = mutableMapOf<Any, Cancellable>()
 
     val clear = object : ClearTimeout {
-        override fun invoke(timeout: Int) {
+        override fun invoke(timeout: Any?) {
             val cancel = timeouts.remove(timeout)
             if (cancel != null)
                 cancel.cancel()
@@ -117,7 +118,7 @@ interface ScheduleTimeout {
 }
 
 interface ClearTimeout {
-    operator fun invoke(timeout: Int)
+    operator fun invoke(timeout: Any?)
 }
 
 interface InstallTimeouts {
