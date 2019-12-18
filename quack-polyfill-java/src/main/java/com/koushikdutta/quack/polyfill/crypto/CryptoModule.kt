@@ -15,17 +15,14 @@ import kotlin.random.Random
 
 class Hash(val cryptoModule: CryptoModule, val messageDigest: MessageDigest) {
     fun update(data: Any, inputEncoding: String?): Hash {
-        val buffer: ByteBuffer
-        if (data is ByteBuffer)
-            buffer = data
-        else if (data is String) {
-            buffer = ByteBuffer.wrap(data.toString().toByteArray())
-        }
-        else {
-            val jo = data as JavaScriptObject
-            buffer = jo.get("buffer") as ByteBuffer
-        }
+        if (inputEncoding != null)
+            throw Exception("unimplemented crypto.hash inputEncoding $inputEncoding")
 
+        val buffer: ByteBuffer
+        if (data is String)
+            buffer = ByteBuffer.wrap(data.toByteArray())
+        else
+            buffer = (data as JavaScriptObject).toByteBuffer()
         messageDigest.update(buffer)
         return this
     }

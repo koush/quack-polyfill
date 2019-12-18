@@ -53,9 +53,20 @@ fun QuackEventLoop.installJobScheduler() {
                     return timeout;
                 }
 
+                var clearQueue = [];
+                var clearTimeoutId;
+                // clearTimeout, et al, may be called spuriosly, so throttle the invocations.
                 function clear(timeout) {
                     delete timeouts[timeout];
-                    cancel(timeout);
+                    if (!clearTimeoutId) {
+                        clearTimeoutId = setTimeout(function() {
+                            clearTimeoutId = undefined;
+                            var cq = clearQueue;
+                            clearQueue = [];
+                            cancel.apply(null, cq);
+                        }, 1000);
+                    }
+                    clearQueue.push(timeout);
                 }
 
                 global.clearTimeout = global.clearImmediate = global.clearInterval = clear;
@@ -86,11 +97,13 @@ fun QuackEventLoop.installJobScheduler() {
 
     val timeouts = mutableMapOf<Any, Cancellable>()
 
-    val clear = object : ClearTimeout {
-        override fun invoke(timeout: Any?) {
-            val cancel = timeouts.remove(timeout)
-            if (cancel != null)
-                cancel.cancel()
+    val clear = object : ClearTimeouts {
+        override fun invoke(vararg clearQueue: Any?) {
+            for (timeout in clearQueue) {
+                val cancel = timeouts.remove(timeout)
+                if (cancel != null)
+                    cancel.cancel()
+            }
         }
     }
 
@@ -117,10 +130,10 @@ interface ScheduleTimeout {
     operator fun invoke(timeout: Int, delay: Int)
 }
 
-interface ClearTimeout {
-    operator fun invoke(timeout: Any?)
+interface ClearTimeouts {
+    operator fun invoke(vararg clearQueue: Any?)
 }
 
 interface InstallTimeouts {
-    operator fun invoke(global: JavaScriptObject, schedule: ScheduleTimeout, clear: ClearTimeout)
+    operator fun invoke(global: JavaScriptObject, schedule: ScheduleTimeout, clear: ClearTimeouts)
 }

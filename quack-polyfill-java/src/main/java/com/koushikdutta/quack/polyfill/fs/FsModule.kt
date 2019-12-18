@@ -7,6 +7,7 @@ import com.koushikdutta.quack.polyfill.ArgParser
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import java.io.File
+import java.io.IOException
 import java.nio.channels.FileChannel
 import java.nio.file.OpenOption
 import java.nio.file.Paths
@@ -154,6 +155,8 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
             } else {
                 read = channel.read(buffer)
             }
+            if (read < 0)
+                throw IOException("read failed")
             rethrow = null
         } catch (throwable: Throwable) {
             rethrow = throwable
