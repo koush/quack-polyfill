@@ -10,8 +10,29 @@ fun QuackEventLoop.installJobScheduler() {
         (function() {
             const timeouts = {};
 
-            function installTimeouts(global, schedule, cancel) {
+            function installTimeouts(global, scheduleTimeouts, cancel) {
                 var timeoutCount = 1;
+
+                var scheduleQueue = [];
+                var delayQueue = [];
+                var scheduleTimeoutId;
+
+                function schedule(timeout, delay) {
+                    if (typeeof delay !== 'number')
+                        delay = 0;
+                    scheduleQueue.push(scheduleTimeouts);
+                    delayQueue.push(delay);
+
+                    if (scheduleTimeoutId)
+                        return;
+
+                    scheduleTimeoutId = timeoutCount++;
+                    timeouts[scheduleTimeoutId] = createTimeoutCallback(function() {
+                        scheduleTimeoutId = undefined;
+                        scheduleTimeouts(scheduleQueue, delayQueue);
+                    });
+                    scheduleTimeouts([scheduleTimeoutId], [0]);
+                }
 
                 function createTimeoutCallback(cb, args) {
                     return function() {
@@ -21,7 +42,7 @@ fun QuackEventLoop.installJobScheduler() {
 
                 global.setTimeout = function setTimeout(cb, delay) {
                     const timeout = timeoutCount++;
-                    schedule(timeout, delay || 0);
+                    schedule(timeout, delay);
                     const args = Array.prototype.slice.call(arguments, 0, 2);
                     timeouts[timeout] = createTimeoutCallback(cb, args);
                     return timeout;
@@ -45,7 +66,7 @@ fun QuackEventLoop.installJobScheduler() {
                         callback();
                     }
                     function reschedule() {
-                        schedule(timeout, interval || 0);
+                        schedule(timeout, interval);
                         timeouts[timeout] = intervalCallback;
                     }
 
@@ -95,27 +116,33 @@ fun QuackEventLoop.installJobScheduler() {
     val installTimeouts = ctx.coerceJavaScriptToJava(InstallTimeouts::class.java, module.get("installTimeouts") as JavaScriptObject) as InstallTimeouts
     val timeoutCallback = (module.get("timeoutCallback") as JavaScriptObject)
 
-    val timeouts = mutableMapOf<Any, Cancellable>()
+    val scheduled = mutableMapOf<Any, Cancellable>()
 
     val clear = object : ClearTimeouts {
         override fun invoke(vararg clearQueue: Any?) {
             for (timeout in clearQueue) {
-                val cancel = timeouts.remove(timeout)
+                val cancel = scheduled.remove(timeout)
                 if (cancel != null)
                     cancel.cancel()
             }
         }
     }
 
-    installTimeouts(global, object : ScheduleTimeout {
-        override fun invoke(timeout: Int, delay: Int) {
-            clear(timeout)
-            val cancel: Cancellable
-            if (delay <= 0)
-                cancel = loop.post { timeoutCallback.callSafely(self, timeout) }
-            else
-                cancel = loop.postDelayed(delay.toLong()) { timeoutCallback.callSafely(self, timeout) }
-            timeouts[timeout] = cancel
+    installTimeouts(global, object : ScheduleTimeouts {
+        override fun invoke(timeouts: IntArray, delays: IntArray) {
+            for (i in timeouts.indices) {
+                val timeout = timeouts[i]
+                val delay = delays[i];
+
+                println(delay)
+                clear(timeout)
+                val cancel: Cancellable
+                if (delay <= 0)
+                    cancel = loop.post { timeoutCallback.callSafely(self, timeout) }
+                else
+                    cancel = loop.postDelayed(delay.toLong()) { timeoutCallback.callSafely(self, timeout) }
+                scheduled[timeout] = cancel
+            }
         }
     }, clear)
 
@@ -126,8 +153,8 @@ fun QuackEventLoop.installJobScheduler() {
     }
 }
 
-interface ScheduleTimeout {
-    operator fun invoke(timeout: Int, delay: Int)
+interface ScheduleTimeouts {
+    operator fun invoke(timeouts: IntArray, delays: IntArray)
 }
 
 interface ClearTimeouts {
@@ -135,5 +162,5 @@ interface ClearTimeouts {
 }
 
 interface InstallTimeouts {
-    operator fun invoke(global: JavaScriptObject, schedule: ScheduleTimeout, clear: ClearTimeouts)
+    operator fun invoke(global: JavaScriptObject, schedule: ScheduleTimeouts, clear: ClearTimeouts)
 }

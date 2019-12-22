@@ -160,7 +160,7 @@ class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
 
 
     private fun makeJson(json: String): JavaScriptObject {
-        return context.evaluateForJavaScriptObject("(function(json) { return JSON.parse(json); })").callCoerced(JavaScriptObject::class.java, json)
+        return context.evaluateForJavaScriptObject("(function(json) { return JSON.parse(json); })").call(json) as JavaScriptObject
     }
     private fun notifyError(exception: Exception) = safeRun {
         onError?.onError(context.newError(exception))
