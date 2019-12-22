@@ -18,9 +18,9 @@ fun QuackEventLoop.installJobScheduler() {
                 var scheduleTimeoutId;
 
                 function schedule(timeout, delay) {
-                    if (typeeof delay !== 'number')
+                    if (typeof delay !== 'number')
                         delay = 0;
-                    scheduleQueue.push(scheduleTimeouts);
+                    scheduleQueue.push(timeout);
                     delayQueue.push(delay);
 
                     if (scheduleTimeoutId)
@@ -29,7 +29,11 @@ fun QuackEventLoop.installJobScheduler() {
                     scheduleTimeoutId = timeoutCount++;
                     timeouts[scheduleTimeoutId] = createTimeoutCallback(function() {
                         scheduleTimeoutId = undefined;
-                        scheduleTimeouts(scheduleQueue, delayQueue);
+                        var sq = scheduleQueue;
+                        scheduleQueue = [];
+                        var dq = delayQueue;
+                        delayQueue = [];
+                        scheduleTimeouts(sq, dq);
                     });
                     scheduleTimeouts([scheduleTimeoutId], [0]);
                 }
