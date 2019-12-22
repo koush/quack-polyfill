@@ -137,8 +137,6 @@ fun QuackEventLoop.installJobScheduler() {
             for (i in timeouts.indices) {
                 val timeout = timeouts[i]
                 val delay = delays[i];
-
-                println(delay)
                 clear(timeout)
                 val cancel: Cancellable
                 if (delay <= 0)

@@ -50,8 +50,8 @@ fun JavaScriptObject.callSafely(quackLoop: QuackEventLoop, vararg arguments: Any
         quackLoop.quack.unhandled(unhandled)
     }
 }
-fun JavaScriptObject.callImmediateSafely(quackLoop: QuackEventLoop, vararg arguments: Any?) {
-    quackLoop.loop.postImmediate {
+fun JavaScriptObject.postCallSafely(quackLoop: QuackEventLoop, vararg arguments: Any?) {
+    quackLoop.loop.post {
         callSafely(quackLoop, *arguments)
     }
 }

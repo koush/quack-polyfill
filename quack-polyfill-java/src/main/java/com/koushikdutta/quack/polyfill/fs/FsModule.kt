@@ -133,7 +133,7 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
             err = quackLoop.quack.newError(rethrow)
         else
             err = null
-        callback.callImmediateSafely(quackLoop, err, *arguments)
+        callback.postCallSafely(quackLoop, err, *arguments)
         return null
     }
 
