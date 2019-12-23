@@ -10,7 +10,10 @@ fun QuackEventLoop.installJobScheduler() {
         (function() {
             const timeouts = {};
 
-            function installTimeouts(global, scheduleTimeouts, cancel) {
+            function installTimeouts(global, scheduleTimeouts, cancel, System) {
+                var println = System.out.println;
+                globalThis.println = println;
+
                 var timeoutCount = 1;
 
                 var scheduleQueue = [];
@@ -40,6 +43,7 @@ fun QuackEventLoop.installJobScheduler() {
 
                 function createTimeoutCallback(cb, args) {
                     return function() {
+//                        println("timeout: " + cb);
                         cb.apply(null, args);
                     }
                 }
@@ -136,7 +140,7 @@ fun QuackEventLoop.installJobScheduler() {
         override fun invoke(timeouts: IntArray, delays: IntArray) {
             for (i in timeouts.indices) {
                 val timeout = timeouts[i]
-                val delay = delays[i];
+                val delay = Integer.max(delays[i], 4)
                 clear(timeout)
                 val cancel: Cancellable
                 if (delay <= 0)
@@ -146,7 +150,7 @@ fun QuackEventLoop.installJobScheduler() {
                 scheduled[timeout] = cancel
             }
         }
-    }, clear)
+    }, clear, System::class.java)
 
     ctx.setJobExecutor { runnable: Runnable ->
         loop.post {
@@ -164,5 +168,5 @@ interface ClearTimeouts {
 }
 
 interface InstallTimeouts {
-    operator fun invoke(global: JavaScriptObject, schedule: ScheduleTimeouts, clear: ClearTimeouts)
+    operator fun invoke(global: JavaScriptObject, schedule: ScheduleTimeouts, clear: ClearTimeouts, clazz: Class<*>)
 }

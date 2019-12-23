@@ -40,7 +40,7 @@ class Constants {
     val O_DSYNC = 1 shl StandardOpenOption.DSYNC.ordinal
 }
 
-class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
+class FsModule(val quackLoop: QuackEventLoop) {
     @get:QuackProperty(name = "constants")
     val constants = Constants()
 
@@ -106,34 +106,27 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
             }
         }
 
-        var file: Int?
-        var rethrow: Throwable?
-        try {
+        return doIOOperation(callback) {
             val fc = FileChannel.open(Paths.get(path), *flagSet.toTypedArray())
-            file = fdCount++
+            val file = fdCount++
             fds[file] = fc
-            rethrow = null
-        } catch (throwable: Throwable) {
-            file = null
-            rethrow = throwable
-        }
 
-        return doCallback(callback, rethrow, file)
+            file
+        }
     }
 
-    private fun <T> doCallback(callback: JavaScriptObject?, rethrow: Throwable?, vararg arguments: Any?): T? {
-        if (callback == null) {
-            if (rethrow != null)
-                throw rethrow
-            return arguments[0] as T?
-        }
+    private fun <T> doIOOperation(callback: JavaScriptObject?, block: () -> T): T? {
+        if (callback == null)
+            return block()
 
-        val err: JavaScriptObject?
-        if (rethrow != null)
-            err = quackLoop.quack.newError(rethrow)
-        else
-            err = null
-        callback.postCallSafely(quackLoop, err, *arguments)
+        quackLoop.ioWorkers.submit {
+            try {
+                callback.postCallSafely(quackLoop, null, block())
+            }
+            catch (throwable: Throwable) {
+                callback.postCallSafely(quackLoop, quackLoop.quack.newError(throwable), null)
+            }
+        }
         return null
     }
 
@@ -142,9 +135,8 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
     }
 
     fun read(fd: Int, buffer: ByteBuffer, offset: Int, length: Int, position: Int?, callback: JavaScriptObject?): Int? {
-        var read: Int?
-        var rethrow: Throwable?
-        try {
+        val block: () -> Int = {
+            val read: Int
             val channel = fds[fd]!!
             buffer.offsetPosition(offset)
             buffer.lengthLimit(length)
@@ -157,12 +149,22 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
             }
             if (read < 0)
                 throw IOException("read failed")
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
-            read = null
+            read
         }
-        return doCallback(callback, rethrow, read, buffer)
+
+        if (callback == null)
+            return block()
+
+        quackLoop.ioWorkers.submit {
+            try {
+                val read = block()
+                callback.postCallSafely(quackLoop, null, read, buffer)
+            }
+            catch (throwable: Throwable) {
+                callback.postCallSafely(quackLoop, throwable, null, null)
+            }
+        }
+        return null
     }
 
     fun readSync(fd: Int, buffer: ByteBuffer, offset: Int, length: Int, position: Int?): Int? {
@@ -176,9 +178,8 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
         val position = parse.Int()
         val callback: JavaScriptObject? = parse("function")
 
-        var written: Int?
-        var rethrow: Throwable?
-        try {
+        return doIOOperation(callback) {
+            val written: Int?
             val channel = fds[fd]!!
             if (offset != null) {
                 buffer.offsetPosition(offset)
@@ -192,12 +193,8 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
             } else {
                 written = channel.write(buffer)
             }
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
-            written = null
+            written
         }
-        return doCallback(callback, rethrow, written, buffer)
     }
 
     fun writeSync(fd: Int, buffer: ByteBuffer, vararg arguments: Any?): Int? {
@@ -215,17 +212,9 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
         val options: JavaScriptObject? = parse("object")
         val callback: JavaScriptObject? = parse("function")
 
-        var stats: Stats?
-        var rethrow: Throwable?
-        try {
-            stats = fstatInternal(fds[fd]!!)
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
-            stats = null
+        return doIOOperation(callback) {
+            fstatInternal(fds[fd]!!)
         }
-
-        return doCallback(callback, rethrow, stats)
     }
 
     fun fstatSync(fd: Int, vararg arguments: Any?): Stats? {
@@ -237,76 +226,52 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
         val options: JavaScriptObject? = parse("object")
         val callback: JavaScriptObject? = parse("function")
 
-        var stats: Stats?
-        var rethrow: Throwable?
-        try {
+        return doIOOperation(callback) {
             val channel = FileChannel.open(Paths.get(path), StandardOpenOption.READ)
-            stats = fstatInternal(channel)
+            val stats = fstatInternal(channel)
             channel.close()
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
-            stats = null
+            stats
         }
-
-        return doCallback(callback, rethrow, stats)
     }
 
     fun statSync(path: String, vararg arguments: Any?): Stats? {
         return stat(path, *arguments)
     }
 
-    fun ftruncate(fd: Int, vararg arguments: Any?) {
+    fun ftruncate(fd: Int, vararg arguments: Any?): Unit? {
         val parse = ArgParser(quackLoop.quack, *arguments)
         val len = parse.Int() ?: 0
         val callback = parse<JavaScriptObject>("function")
 
-        var rethrow: Throwable?
-        try {
+        return doIOOperation(callback) {
             val channel = fds[fd]!!
             channel.truncate(len.toLong())
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
+            null
         }
-
-        doCallback<Int?>(callback, rethrow, null)
     }
 
     fun ftruncateSync(fd: Int, vararg arguments: Any?) {
         ftruncate(fd, *arguments)
     }
 
-    fun unlink(path: String, callback: JavaScriptObject?) {
-        var rethrow: Throwable?
-        try {
-            File(path).delete()
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
-        }
-
-        doCallback<Int?>(callback, rethrow, null)
+    fun unlink(path: String, callback: JavaScriptObject?): Unit? = doIOOperation(callback) {
+        File(path).delete()
+        null
     }
 
     fun unlinkSync(path: String) {
         unlink(path, null)
     }
 
-    fun rmdir(path: String, vararg arguments: Any?) {
+    fun rmdir(path: String, vararg arguments: Any?): Unit? {
         val parse = ArgParser(quackLoop.quack, *arguments)
         val options = parse<JavaScriptObject>("object")
         val callback = parse<JavaScriptObject>("function")
 
-        var rethrow: Throwable?
-        try {
+        return doIOOperation(callback) {
             File(path).delete()
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
+            null
         }
-
-        doCallback<Int?>(callback, rethrow, null)
     }
 
     fun rmdirSync(path: String, vararg arguments: Any?) {
@@ -317,45 +282,32 @@ class FsModule(val quackLoop: QuackEventLoop, modules: Modules) {
         var recursive: Boolean = false
     }
 
-    fun mkdir(path: String, vararg arguments: Any?) {
+    fun mkdir(path: String, vararg arguments: Any?): Unit? {
         val parse = ArgParser(quackLoop.quack, *arguments)
         val options = parse<JavaScriptObject>("object")?.jsonCoerce(MkdirOptions::class.java) ?: MkdirOptions()
         val mode = parse.Int()
         val callback = parse<JavaScriptObject>("function")
 
-        var rethrow: Throwable?
-        try {
+        return doIOOperation(callback) {
             if (options.recursive)
                 File(path).mkdirs()
             else
                 File(path).mkdir()
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
+            null
         }
-
-        doCallback<Int?>(callback, rethrow, null)
     }
 
     fun mkdirSync(path: String, vararg arguments: Any?) {
         mkdir(path, *arguments)
     }
 
-    fun close(fd: Int, callback: JavaScriptObject?) {
-        var rethrow: Throwable?
+    fun close(fd: Int, callback: JavaScriptObject?): Unit? = doIOOperation(callback) {
+        val channel = fds[fd]!!
         try {
-            val channel = fds[fd]!!
-            try {
-                channel.close()
-            }
-            catch (throwable: Throwable) {
-            }
-            rethrow = null
-        } catch (throwable: Throwable) {
-            rethrow = throwable
+            channel.close()
         }
-
-        doCallback<Int?>(callback, rethrow, null)
+        catch (throwable: Throwable) {
+        }
     }
 
     fun closeSync(fd: Int) {

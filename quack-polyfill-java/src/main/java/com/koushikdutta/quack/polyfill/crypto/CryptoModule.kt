@@ -55,9 +55,8 @@ class CryptoModule(val quackLoop: QuackEventLoop, modules: Modules) {
             val buffer = bufferClass.callProperty("from", ByteBuffer.wrap(bytes)) as JavaScriptObject
             if (callback == null)
                 return buffer
-            quackLoop.loop.post {
-                callback.callSafely(quackLoop, buffer)
-            }
+
+            callback.postCallSafely(quackLoop, buffer)
             return null
         }
     }

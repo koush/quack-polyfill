@@ -29,7 +29,7 @@ class DnsModule(val quackLoop: QuackEventLoop, val modules: Modules) {
                 if (options.all) {
                     val addresses = quackLoop.quack.evaluateForJavaScriptObject("[]")
                     getAllByName(hostname).forEach { addresses.callProperty("push", it.hostAddress) }
-                    callback.callSafely(quackLoop, null, addresses, 0)
+                    callback.postCallSafely(quackLoop, null, addresses, 0)
                 }
                 else {
                     val addr = getByName(hostname)
@@ -40,11 +40,11 @@ class DnsModule(val quackLoop: QuackEventLoop, val modules: Modules) {
                         family = 6
                     else
                         family = 0
-                    callback.callSafely(quackLoop, null, addr.hostAddress, family)
+                    callback.postCallSafely(quackLoop, null, addr.hostAddress, family)
                 }
             }
             catch (throwable: Throwable) {
-                callback.callSafely(quackLoop, quackLoop.quack.newError(throwable))
+                callback.postCallSafely(quackLoop, quackLoop.quack.newError(throwable))
             }
         }
     }

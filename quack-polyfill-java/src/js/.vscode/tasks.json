@@ -8,7 +8,23 @@
             "type": "shell",
             "command": "curl",
             "args": [
-                "'http://localhost:5566/?script=${workspaceFolder}/main.js&connectionString=0.0.0.0:5555'"
+                "'http://192.168.2.44:5566/?script=${workspaceFolder}/main.js&connectionString=0.0.0.0:5555'"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "adb debug",
+            "type": "shell",
+            "command": "adb",
+            "args": [
+                "shell",
+                "am",
+                "start-service",
+                "-n",
+                "com.koushikdutta.cast/com.koushikdutta.cast.extension.torrent.TorrentDownloadService",
+                "--es",
+                "debug-string",
+                "0.0.0.0:6666"
             ],
             "problemMatcher": []
         }

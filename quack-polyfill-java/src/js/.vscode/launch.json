@@ -13,6 +13,7 @@
             "port": 6666,
             "remoteRoot": "/webtorrent-dist",
             "localRoot": "${workspaceFolder}/",
+            "preLaunchTask": "adb debug",
             "trace": true
         }
     ]

@@ -159,7 +159,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     override fun close(cb: JavaScriptObject?) {
         quackLoop.loop.async {
             socket?.close()
-            cb?.callSafely(quackLoop)
+            cb?.postCallSafely(quackLoop)
         }
     }
 
@@ -249,7 +249,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     override fun _destroy(err: Any?, callback: JavaScriptObject?) {
         quackLoop.loop.async {
             socket?.close()
-            callback?.callSafely(quackLoop)
+            callback?.postCallSafely(quackLoop)
         }
     }
 

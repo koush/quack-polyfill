@@ -87,13 +87,20 @@ interface BaseReadable : Readable {
                     pauser!!.resume()
                     return@async
                 }
+                var needPause = false
                 pauser = Cooperator()
                 val buffer = ByteBufferList()
                 while (getAsyncRead()(buffer)) {
-                    if (buffer.isEmpty)
-                        continue
-                    if (!stream.push(buffer.readByteBuffer()))
+                    post {
+                        // queue the data up, so when the source drains, all the data
+                        // is aggregated into a single buffer. push will be only called once.
+                        if (!buffer.isEmpty)
+                            needPause = needPause || !stream.push(buffer.readByteBuffer())
+                    }
+                    if (needPause) {
                         pauser!!.yield()
+                        needPause = false
+                    }
                 }
             }
             catch (e: Exception) {
@@ -118,10 +125,12 @@ interface BaseWritable : Writable {
                 while (buffer.hasRemaining()) {
                     getAsyncWrite()(buffer)
                 }
+                post()
                 callback?.callSafely(quackLoop, null)
                 finalCallback?.callSafely(quackLoop, null)
             }
             catch (e: Exception) {
+                post()
                 val err = quackLoop.quack.newError(e)
                 callback?.callSafely(quackLoop, err)
                 finalCallback?.callSafely(quackLoop, err)
