@@ -278,7 +278,7 @@ class PolyfillTests {
             object : BaseReadable {
                 override val quackLoop = quackLoop
                 override val stream = stream
-                override var pauser: Cooperator? = null
+                override var pauser: Yielder? = null
                 override suspend fun getAsyncRead(): AsyncRead = junkRead
 
                 override fun _destroy(err: Any?, callback: JavaScriptObject?) {

@@ -174,7 +174,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
         return SocketAddress(socket!!.localPort, socket!!.localAddress)
     }
 
-    override var pauser: Cooperator? = null
+    override var pauser: Yielder? = null
     override val bufferSize: Int
         get() = 0
     override val bytesRead: Int
@@ -258,7 +258,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
         }
     }
 
-    val readYielder = Cooperator()
+    val readYielder = Yielder()
     override suspend fun getAsyncRead(): AsyncRead {
         quackLoop.netLoop.await()
         if (socket == null)
@@ -266,7 +266,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
         return socket!!::read
     }
 
-    val writeYielder = Cooperator()
+    val writeYielder = Yielder()
     override suspend fun getAsyncWrite(): AsyncWrite {
         quackLoop.netLoop.await()
         if (socket == null)
