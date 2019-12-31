@@ -3,7 +3,6 @@ package com.koushikdutta.quack.polyfill.net
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackProperty
 import com.koushikdutta.quack.polyfill.*
-import com.koushikdutta.quack.polyfill.dgram.UdpAddress
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.*
 import com.koushikdutta.scratch.event.*
@@ -169,7 +168,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
         return SocketAddress(socket!!.localPort, socket!!.localAddress)
     }
 
-    override var pauser: Cooperator? = null
+    override var pauser: Yielder? = null
     override val bufferSize: Int
         get() = 0
     override val bytesRead: Int
@@ -253,14 +252,14 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
         }
     }
 
-    val readYielder = Cooperator()
+    val readYielder = Yielder()
     override suspend fun getAsyncRead(): AsyncRead {
         if (socket == null)
             readYielder.yield()
         return socket!!::read
     }
 
-    val writeYielder = Cooperator()
+    val writeYielder = Yielder()
     override suspend fun getAsyncWrite(): AsyncWrite {
         if (socket == null)
             writeYielder.yield()

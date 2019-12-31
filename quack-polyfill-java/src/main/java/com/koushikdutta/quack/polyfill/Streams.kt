@@ -5,7 +5,6 @@ import com.koushikdutta.quack.QuackContext
 import com.koushikdutta.scratch.*
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.buffers.ByteBufferList
-import com.koushikdutta.scratch.event.AsyncEventLoop
 import java.lang.Exception
 
 
@@ -16,7 +15,7 @@ interface Stream: EventEmitter {
 }
 
 fun Stream.createAsyncRead(ctx: QuackContext): AsyncRead {
-    val yielder = Cooperator()
+    val yielder = Yielder()
     var more = true
     on("readable") {
         yielder.resume()
@@ -76,7 +75,7 @@ interface BaseReadable : Readable {
     val quackLoop: QuackEventLoop
     val stream: ReadableStream
     suspend fun getAsyncRead(): AsyncRead
-    var pauser: Cooperator?
+    var pauser: Yielder?
 
     override fun _read(len: Int?) {
         quackLoop.loop.async {
@@ -88,7 +87,7 @@ interface BaseReadable : Readable {
                     return@async
                 }
                 var needPause = false
-                pauser = Cooperator()
+                pauser = Yielder()
                 val buffer = ByteBufferList()
                 while (getAsyncRead()(buffer)) {
                     post {
