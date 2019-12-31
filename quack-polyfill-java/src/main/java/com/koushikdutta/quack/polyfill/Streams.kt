@@ -5,7 +5,8 @@ import com.koushikdutta.quack.QuackContext
 import com.koushikdutta.scratch.*
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.buffers.ByteBufferList
-import com.koushikdutta.scratch.event.AsyncEventLoop
+import com.koushikdutta.scratch.event.AsyncServerRunnable
+import com.koushikdutta.scratch.event.Cancellable
 import java.lang.Exception
 
 
@@ -42,6 +43,7 @@ fun Stream.createAsyncRead(ctx: QuackContext): AsyncRead {
                 continue
             }
 
+            println("streaming ${buffer.remaining()}")
             yield(buffer)
         }
     }
@@ -76,6 +78,7 @@ interface BaseReadable : Readable {
     val quackLoop: QuackEventLoop
     val stream: ReadableStream
     suspend fun getAsyncRead(): AsyncRead
+    fun post(runnable: AsyncServerRunnable): Cancellable
     var pauser: Cooperator?
 
     override fun _read(len: Int?) {
@@ -91,11 +94,22 @@ interface BaseReadable : Readable {
                 pauser = Cooperator()
                 val buffer = ByteBufferList()
                 while (getAsyncRead()(buffer)) {
-                    post {
+                    this@BaseReadable.post {
                         // queue the data up, so when the source drains, all the data
                         // is aggregated into a single buffer. push will be only called once.
-                        if (!buffer.isEmpty)
-                            needPause = needPause || !stream.push(buffer.readByteBuffer())
+                        if (buffer.isEmpty)
+                            return@post
+
+                        val copy = ByteBufferList()
+                        buffer.read(copy)
+
+                        quackLoop.loop.async {
+                            val more = stream.push(copy.readByteBuffer())
+
+                            this@BaseReadable.post {
+                                needPause = needPause || !more
+                            }
+                        }
                     }
                     if (needPause) {
                         pauser!!.yield()
@@ -104,10 +118,11 @@ interface BaseReadable : Readable {
                 }
             }
             catch (e: Exception) {
+                post()
                 stream.destroy(quackLoop.quack.newError(e))
             }
-            stream.emitSafely(quackLoop, "end")
-            stream.emitSafely(quackLoop, "close")
+            stream.postEmitSafely(quackLoop, "end")
+            stream.postEmitSafely(quackLoop, "close")
         }
     }
 }

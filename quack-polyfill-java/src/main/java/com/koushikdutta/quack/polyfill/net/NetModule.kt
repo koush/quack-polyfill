@@ -3,7 +3,6 @@ package com.koushikdutta.quack.polyfill.net
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackProperty
 import com.koushikdutta.quack.polyfill.*
-import com.koushikdutta.quack.polyfill.dgram.UdpAddress
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.*
 import com.koushikdutta.scratch.event.*
@@ -91,10 +90,10 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
     var server: AsyncNetworkServerSocket? = null
 
     override fun close(cb: JavaScriptObject?) {
-        quackLoop.loop.async {
+        quackLoop.netLoop.async {
             server?.close()
             server = null
-            cb?.call()
+            cb?.postCallSafely(quackLoop)
         }
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
@@ -104,20 +103,21 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
     }
 
     private fun listenInternal(port: Int?, host: String?, callback: JavaScriptObject?) {
-        quackLoop.loop.async {
+        quackLoop.netLoop.async {
             try {
                 if (server != null)
                     throw IllegalStateException("ERR_SERVER_ALREADY_LISTEN")
                 server = listen(port ?: 0, InetAddress.getByName(host))
                 if (callback != null)
                     emitter.on("listening", callback)
-                emitter.emitSafely(quackLoop, "listening")
+                emitter.postEmitSafely(quackLoop, "listening")
 
                 server!!.acceptAsync {
+                    quackLoop.loop.post()
                     val socket = netModule.socketClass.construct()
                     val mixin = socket.getMixin(SocketImpl::class.java)
                     mixin.socket = this
-                    emitter.emitSafely(quackLoop, "connection", socket)
+                    emitter.postEmitSafely(quackLoop, "connection", socket)
                 }
             }
             catch (throwable: Throwable) {
@@ -156,8 +156,13 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
 
 open class SocketImpl(override val quackLoop: QuackEventLoop, override val stream: DuplexStream, val options: CreateSocketOptions?): BaseDuplex, Socket {
     var socket: AsyncNetworkSocket? = null
+
+    override fun post(runnable: AsyncServerRunnable): Cancellable {
+        return quackLoop.netLoop.post(runnable)
+    }
+
     override fun close(cb: JavaScriptObject?) {
-        quackLoop.loop.async {
+        quackLoop.netLoop.async {
             socket?.close()
             cb?.postCallSafely(quackLoop)
         }
@@ -194,11 +199,11 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     }
 
     open suspend fun connectInternal(connectHost: String, port: Int): AsyncNetworkSocket {
-        return quackLoop.loop.connect(connectHost, port)
+        return quackLoop.netLoop.connect(connectHost, port)
     }
 
     private fun connectInternal(port: Int, host: String?, connectListener: JavaScriptObject?) {
-        quackLoop.loop.async {
+        quackLoop.netLoop.async {
             if (socket != null) {
                 stream.emitError(quackLoop, IllegalStateException("socket already created"))
                 return@async
@@ -211,7 +216,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
                 socket = connectInternal(connectHost, port)
                 connecting = false
                 pending = false
-                stream.emitSafely(quackLoop, "connect")
+                stream.postEmitSafely(quackLoop, "connect")
                 readYielder.resume()
                 writeYielder.resume()
             }
@@ -247,7 +252,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     }
 
     override fun _destroy(err: Any?, callback: JavaScriptObject?) {
-        quackLoop.loop.async {
+        quackLoop.netLoop.async {
             socket?.close()
             callback?.postCallSafely(quackLoop)
         }
@@ -255,6 +260,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
     val readYielder = Cooperator()
     override suspend fun getAsyncRead(): AsyncRead {
+        quackLoop.netLoop.await()
         if (socket == null)
             readYielder.yield()
         return socket!!::read
@@ -262,6 +268,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
     val writeYielder = Cooperator()
     override suspend fun getAsyncWrite(): AsyncWrite {
+        quackLoop.netLoop.await()
         if (socket == null)
             writeYielder.yield()
         return socket!!::write

@@ -1,7 +1,6 @@
 package com.koushikdutta.quack.polyfill.dgram
 
 import com.koushikdutta.quack.JavaScriptObject
-import com.koushikdutta.quack.QuackContext
 import com.koushikdutta.quack.polyfill.*
 import com.koushikdutta.quack.polyfill.jsonCoerce
 import com.koushikdutta.quack.polyfill.net.getInetAddressFamily
@@ -40,7 +39,7 @@ class CreateDgramOptions {
 class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClass: JavaScriptObject, val emitter: EventEmitter, internal val options: CreateDgramOptions) : Udp {
     var dgram: AsyncDatagramSocket? = null
     val family = options.type!!
-    val handler = AsyncHandler(quackLoop.loop::await)
+    val handler = AsyncHandler(quackLoop.netLoop::await)
 
     override fun connect(port: Int, vararg arguments: Any?) {
         val argParser = ArgParser(quackLoop.quack, *arguments)
@@ -53,7 +52,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
                     ensureSocketInternal(null, null, null)
 
                 dgram!!.connect(InetSocketAddress(address, port))
-                cb?.call()
+                cb?.postCallSafely(quackLoop)
             }
             catch (e: Exception) {
                 emitter.emitError(quackLoop, e, cb)
@@ -62,7 +61,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
     }
 
     override fun close(runnable: Runnable?) {
-        quackLoop.loop.async {
+        quackLoop.netLoop.async {
             try {
                 if (dgram != null)
                     dgram!!.close()
@@ -70,6 +69,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
             catch (e: Exception) {
             }
             try {
+                post()
                 runnable?.run()
             }
             catch (e: Exception) {
@@ -103,16 +103,16 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
 
             val addr: InetAddress?
             if (bindAddress != null)
-                addr = quackLoop.loop.getByName(bindAddress)
+                addr = quackLoop.netLoop.getByName(bindAddress)
             else
                 addr = null
 
-            dgram = quackLoop.loop.createDatagram(bindPort, addr, options.reuseAddr)
+            dgram = quackLoop.netLoop.createDatagram(bindPort, addr, options.reuseAddr)
             udpAddress = UdpAddress(dgram!!.localPort, dgram!!.localAddress)
             if (broadcast != null)
                 dgram!!.broadcast = broadcast!!
 
-            cb?.call()
+            cb?.postCallSafely(quackLoop)
 
             messageLoop()
         }
@@ -121,14 +121,15 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
         }
     }
 
-    private fun messageLoop() = quackLoop.loop.async {
+    private fun messageLoop() = quackLoop.netLoop.async {
         val buffer = ByteBufferList()
         try {
             while (true) {
                 val addr = dgram!!.receivePacket(buffer)
                 val b = buffer.readByteBuffer()
                 val rinfo = UdpMessage(addr.port, addr.address, b.remaining())
-                emitter.emit("message", bufferClass.callProperty("from", b), jsonCoerce(UdpMessage::class.java, rinfo))
+                quackLoop.loop.post()
+                emitter.postEmitSafely(quackLoop, "message", bufferClass.callProperty("from", b), jsonCoerce(UdpMessage::class.java, rinfo))
             }
         }
         catch (exception: Exception) {
@@ -156,7 +157,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
             val address = argParser.String()
             val cb: JavaScriptObject? = argParser("function")
 
-            this.ensureSocket(address, port?.toInt(), cb);
+            this.ensureSocket(address, port, cb);
         }
     }
 
@@ -222,7 +223,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
                 else
                     dgram!!.sendPacket(InetSocketAddress(address!!, port!!.toInt()), b)
 
-                cb?.call()
+                cb?.postCallSafely(quackLoop)
             }
             catch (exception: Exception) {
                 emitter.emitError(quackLoop, exception, cb)

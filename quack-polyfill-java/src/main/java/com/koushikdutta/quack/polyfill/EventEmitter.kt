@@ -56,11 +56,13 @@ fun JavaScriptObject.postCallSafely(quackLoop: QuackEventLoop, vararg arguments:
     }
 }
 
-fun EventEmitter.emitSafely(quackLoop: QuackEventLoop, event: String, vararg arguments: Any?) {
-    try {
-        emit(event, *arguments)
-    }
-    catch (unhandled: Throwable) {
-        quackLoop.quack.unhandled(unhandled)
+fun EventEmitter.postEmitSafely(quackLoop: QuackEventLoop, event: String, vararg arguments: Any?) {
+    quackLoop.loop.post {
+        try {
+            emit(event, *arguments)
+        }
+        catch (unhandled: Throwable) {
+            quackLoop.quack.unhandled(unhandled)
+        }
     }
 }

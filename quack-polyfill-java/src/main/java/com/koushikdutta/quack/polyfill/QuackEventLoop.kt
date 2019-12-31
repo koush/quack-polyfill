@@ -18,8 +18,10 @@ import com.koushikdutta.scratch.http.client.AsyncHttpClient
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
 
-class QuackEventLoop(val loop: AsyncEventLoop, val quack: QuackContext) {
-    constructor() : this(AsyncEventLoop(), QuackContext.create())
+class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val quack: QuackContext) {
+    constructor() : this(AsyncEventLoop())
+    constructor(loop: AsyncEventLoop) : this(loop, loop, QuackContext.create())
+    constructor(loop: AsyncEventLoop, netLoop: AsyncEventLoop) : this(loop, netLoop, QuackContext.create())
 
     private class NamedThreadFactory internal constructor(namePrefix: String) : ThreadFactory {
         private val group: ThreadGroup
