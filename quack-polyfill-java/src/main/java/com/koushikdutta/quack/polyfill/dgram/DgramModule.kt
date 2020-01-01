@@ -2,14 +2,16 @@ package com.koushikdutta.quack.polyfill.dgram
 
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.polyfill.*
-import com.koushikdutta.quack.polyfill.jsonCoerce
 import com.koushikdutta.quack.polyfill.net.getInetAddressFamily
 import com.koushikdutta.quack.polyfill.require.Modules
-import com.koushikdutta.scratch.AsyncHandler
-import com.koushikdutta.scratch.async
+import com.koushikdutta.scratch.async.AsyncHandler
+import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.buffers.ByteBufferList
-import com.koushikdutta.scratch.event.*
+import com.koushikdutta.scratch.event.AsyncDatagramSocket
+import com.koushikdutta.scratch.event.InetAddress
+import com.koushikdutta.scratch.event.InetSocketAddress
+import com.koushikdutta.scratch.event.getByName
 
 open class UdpAddress(val port: Int, inetAddress: InetAddress) {
     val address: String = inetAddress.toString().replace("/", "")
@@ -39,7 +41,7 @@ class CreateDgramOptions {
 class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClass: JavaScriptObject, val emitter: EventEmitter, internal val options: CreateDgramOptions) : Udp {
     var dgram: AsyncDatagramSocket? = null
     val family = options.type!!
-    val handler = AsyncHandler(quackLoop.netLoop::await)
+    val handler = AsyncHandler(quackLoop.netLoop)
 
     override fun connect(port: Int, vararg arguments: Any?) {
         val argParser = ArgParser(quackLoop.quack, *arguments)

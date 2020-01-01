@@ -4,7 +4,7 @@ import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackContext
 import com.koushikdutta.quack.QuackObject
 import com.koushikdutta.quack.QuackProperty
-import com.koushikdutta.scratch.async
+import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.buffers.ByteBufferList
 import com.koushikdutta.scratch.event.AsyncServerRunnable
 import com.koushikdutta.scratch.http.AsyncHttpRequest

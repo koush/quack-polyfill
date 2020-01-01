@@ -1,11 +1,8 @@
 package com.koushikdutta.quack.polyfill.dns
 
-import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.polyfill.*
-import com.koushikdutta.quack.polyfill.ArgParser
-import com.koushikdutta.quack.polyfill.jsonCoerce
 import com.koushikdutta.quack.polyfill.require.Modules
-import com.koushikdutta.scratch.async
+import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.event.Inet4Address
 import com.koushikdutta.scratch.event.Inet6Address
 import com.koushikdutta.scratch.event.getByName

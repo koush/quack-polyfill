@@ -3,6 +3,7 @@ package com.koushikdutta.quack.polyfill
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackContext
 import com.koushikdutta.scratch.*
+import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.buffers.ByteBufferList
 import com.koushikdutta.scratch.event.AsyncServerRunnable
@@ -13,6 +14,7 @@ interface Stream: EventEmitter {
     fun pause()
     fun resume()
     fun read(): ByteBuffer?
+    fun destroy(error: JavaScriptObject? = null)
 }
 
 fun Stream.createAsyncRead(ctx: QuackContext): AsyncRead {
@@ -89,31 +91,24 @@ interface BaseReadable : Readable {
                     pauser!!.resume()
                     return@async
                 }
-                var needPause = false
                 pauser = Yielder()
                 val buffer = ByteBufferList()
                 while (getAsyncRead()(buffer)) {
-                    this@BaseReadable.post {
-                        // queue the data up, so when the source drains, all the data
-                        // is aggregated into a single buffer. push will be only called once.
-                        if (buffer.isEmpty)
-                            return@post
+                    // queue the data up, so when the source drains, all the data
+                    // is aggregated into a single buffer. push will be only called once.
+                    if (buffer.isEmpty)
+                        continue
 
-                        val copy = ByteBufferList()
-                        buffer.read(copy)
+                    val copy = ByteBufferList()
+                    buffer.read(copy)
 
-                        quackLoop.loop.async {
-                            val more = stream.push(copy.readByteBuffer())
+                    // get off the network loop.
+                    val more = quackLoop.loop.async {
+                        stream.push(copy.readByteBuffer())
+                    }.await()
 
-                            this@BaseReadable.post {
-                                needPause = needPause || !more
-                            }
-                        }
-                    }
-                    if (needPause) {
+                    if (!more)
                         pauser!!.yield()
-                        needPause = false
-                    }
                 }
             }
             catch (e: Exception) {
