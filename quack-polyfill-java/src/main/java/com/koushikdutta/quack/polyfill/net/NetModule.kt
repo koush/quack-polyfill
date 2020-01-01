@@ -121,7 +121,7 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
                 }
             }
             catch (throwable: Throwable) {
-                emitter.emitError(quackLoop, throwable)
+                emitter.postEmitError(quackLoop, throwable)
             }
         }
     }
@@ -205,7 +205,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     private fun connectInternal(port: Int, host: String?, connectListener: JavaScriptObject?) {
         quackLoop.netLoop.async {
             if (socket != null) {
-                stream.emitError(quackLoop, IllegalStateException("socket already created"))
+                stream.postEmitError(quackLoop, IllegalStateException("socket already created"))
                 return@async
             }
             connecting = true
@@ -222,7 +222,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
             }
             catch (throwable: Throwable) {
                 connecting = false
-                stream.emitError(quackLoop, throwable)
+                stream.postEmitError(quackLoop, throwable)
             }
         }
     }

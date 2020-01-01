@@ -24,7 +24,7 @@ fun EventEmitter.on(eventName: String, listener: (args: Array<out Any>) -> Unit)
 }
 
 
-fun EventEmitter.emitError(quackLoop: QuackEventLoop, throwable: Throwable, cb: JavaScriptObject? = null) {
+fun EventEmitter.postCallbackErrorElseEmit(quackLoop: QuackEventLoop, throwable: Throwable, cb: JavaScriptObject?) {
     quackLoop.loop.post {
         try {
             val err = quackLoop.quack.newError(throwable)
@@ -32,6 +32,18 @@ fun EventEmitter.emitError(quackLoop: QuackEventLoop, throwable: Throwable, cb: 
                 cb.call(err)
             else
                 emit("error", err)
+        }
+        catch (unhandled: Throwable) {
+            quackLoop.quack.unhandled(unhandled)
+        }
+    }
+}
+
+fun EventEmitter.postEmitError(quackLoop: QuackEventLoop, throwable: Throwable) {
+    quackLoop.loop.post {
+        try {
+            val err = quackLoop.quack.newError(throwable)
+            emit("error", err)
         }
         catch (unhandled: Throwable) {
             quackLoop.quack.unhandled(unhandled)
