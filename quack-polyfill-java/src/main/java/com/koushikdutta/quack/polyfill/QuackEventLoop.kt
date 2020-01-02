@@ -55,6 +55,7 @@ class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val 
     val ioWorkers = newSynchronousWorker("quack-io", 1)
 
     init {
+        Console(quack, System.out, System.err)
         installJobScheduler()
 
         quack.putJavaScriptToJavaCoercion(ByteBuffer::class.java) { clazz, o ->

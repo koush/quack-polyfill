@@ -79,7 +79,6 @@ interface BaseReadable : Readable {
     val quackLoop: QuackEventLoop
     val stream: ReadableStream
     suspend fun getAsyncRead(): AsyncRead
-    fun post(runnable: AsyncServerRunnable): Cancellable
     var pauser: Yielder?
 
     override fun _read(len: Int?) {

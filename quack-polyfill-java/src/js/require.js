@@ -177,6 +177,9 @@ process.type = 'renderer';
 process.env.DEBUG = '*';
 global.process = process;
 global.Buffer = require('buffer').Buffer;
+const url = require('whatwg-url');
+global.URL = url.URL;
+global.URLSearchParams = url.URLSearchParams;
 
 const oldToString = Object.prototype.toString;
 Object.prototype.toString = function() {

@@ -5,6 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "${workspaceFolder}/quackpack.js",
+        },
+        {
             "type": "quickjs",
             "request": "attach",
             "name": "Launch QuickJS",

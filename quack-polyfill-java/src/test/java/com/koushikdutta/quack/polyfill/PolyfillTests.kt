@@ -9,6 +9,9 @@ import com.koushikdutta.quack.polyfill.require.ReadFile
 import com.koushikdutta.quack.polyfill.require.installModules
 import com.koushikdutta.quack.polyfill.xmlhttprequest.XMLHttpRequest
 import com.koushikdutta.scratch.*
+import com.koushikdutta.scratch.async.async
+import com.koushikdutta.scratch.event.AsyncServerRunnable
+import com.koushikdutta.scratch.event.Cancellable
 import com.koushikdutta.scratch.http.AsyncHttpResponse
 import com.koushikdutta.scratch.http.Headers
 import com.koushikdutta.scratch.http.OK

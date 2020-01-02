@@ -158,10 +158,6 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
 open class SocketImpl(override val quackLoop: QuackEventLoop, override val stream: DuplexStream, val options: CreateSocketOptions?): BaseDuplex, Socket {
     var socket: AsyncNetworkSocket? = null
 
-    override fun post(runnable: AsyncServerRunnable): Cancellable {
-        return quackLoop.netLoop.post(runnable)
-    }
-
     override fun close(cb: JavaScriptObject?) {
         quackLoop.netLoop.async {
             socket?.close()
