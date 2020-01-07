@@ -215,7 +215,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
             buffer.limit(buffer.position() + length!!.toInt())
         }
 
-        if ((port != null).xor(address != null))
+        if ((port == null && address != null) || (port != null && address == null))
             throw IllegalArgumentException("expected both port and address on udp send")
 
         val cb = argParser.Function()

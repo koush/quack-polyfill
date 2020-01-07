@@ -35,6 +35,12 @@ internal class ArgParser(val quack: QuackContext, vararg val arguments: Any?) {
             return null
         }
 
+        // most node apis seem to coerce strings to ints when necessary
+        if (type == "number" && arg is String && arg.toString().toIntOrNull() != null) {
+            index++
+            return arg.toString().toIntOrNull() as T
+        }
+
         if (type == "number" && arg !is Number)
             return null
         else if (type == "string" && arg !is String)

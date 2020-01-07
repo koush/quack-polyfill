@@ -68,6 +68,7 @@ const builtins = {
     http: "stream-http",
     events: 'events',
     util: 'util',
+    querystring: 'querystring-es3',
 };
 
 function requireLoadSingleFile(fullname) {
@@ -174,7 +175,7 @@ let process = {};
 process = require('process');
 // for debug module
 process.type = 'renderer';
-process.env.DEBUG = '*';
+// process.env.DEBUG = '*';
 global.process = process;
 global.Buffer = require('buffer').Buffer;
 const url = require('whatwg-url');

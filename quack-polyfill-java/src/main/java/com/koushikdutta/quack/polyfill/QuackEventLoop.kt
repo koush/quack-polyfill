@@ -72,7 +72,7 @@ class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val 
         modules["os"] = OSModule(this)
         modules["crypto"] = CryptoModule(this, modules)
         modules["dns"] = DnsModule(this, modules)
-        val client = AsyncHttpClient(loop)
+        val client = AsyncHttpClient(netLoop)
         quack.globalObject.set("XMLHttpRequest", XMLHttpRequest.Constructor(quack, client))
         return modules
     }

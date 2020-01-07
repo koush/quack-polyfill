@@ -6,8 +6,6 @@ import com.koushikdutta.scratch.*
 import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.buffers.ByteBufferList
-import com.koushikdutta.scratch.event.AsyncServerRunnable
-import com.koushikdutta.scratch.event.Cancellable
 
 
 interface Stream: EventEmitter {
@@ -17,7 +15,7 @@ interface Stream: EventEmitter {
     fun destroy(error: JavaScriptObject? = null)
 }
 
-fun Stream.createAsyncRead(ctx: QuackContext): AsyncRead {
+fun Stream.createAsyncRead(quackEventLoop: QuackEventLoop): AsyncRead {
     val yielder = Yielder()
     var more = true
     on("readable") {
@@ -36,6 +34,7 @@ fun Stream.createAsyncRead(ctx: QuackContext): AsyncRead {
 
     return asyncIterator<ByteBuffer> {
         while (more) {
+            quackEventLoop.loop.await()
             val buffer = read()
             if (buffer == null) {
                 // stream could not fullfill a read request, so yield until the next
@@ -48,7 +47,7 @@ fun Stream.createAsyncRead(ctx: QuackContext): AsyncRead {
             yield(buffer)
         }
     }
-    .createAsyncRead()
+    .createAsyncReadFromByteBuffers()
 }
 
 interface ReadableStream : EventEmitter {

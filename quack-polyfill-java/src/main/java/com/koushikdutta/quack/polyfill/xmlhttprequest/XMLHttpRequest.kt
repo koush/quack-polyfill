@@ -20,7 +20,7 @@ private fun safeRun(runnable: AsyncServerRunnable) {
         runnable()
     }
     catch (e: Exception) {
-        println(e);
+        println(e)
     }
 }
 
