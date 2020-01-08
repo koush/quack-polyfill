@@ -19,8 +19,8 @@ private fun safeRun(runnable: AsyncServerRunnable) {
     try {
         runnable()
     }
-    catch (e: Exception) {
-        println(e)
+    catch (throwable: Throwable) {
+        println(throwable)
     }
 }
 

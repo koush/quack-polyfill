@@ -196,7 +196,9 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     }
 
     open suspend fun connectInternal(connectHost: String, port: Int): AsyncNetworkSocket {
-        return quackLoop.netLoop.connect(connectHost, port)
+        val ret = quackLoop.netLoop.connect(connectHost, port)
+        ret.socket.receiveBufferSize = 1024 * 1024
+        return ret
     }
 
     private fun connectInternal(port: Int, host: String?, connectListener: JavaScriptObject?) {
@@ -257,7 +259,10 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
     val readYielder = Yielder()
     override suspend fun getAsyncRead(): AsyncRead {
-        quackLoop.netLoop.await()
+//        quackLoop.netLoop.await()
+        // throttle reads to fill receive buffer.
+        quackLoop.netLoop.sleep(50)
+
         if (socket == null)
             readYielder.yield()
         return socket!!::read
@@ -266,6 +271,10 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     val writeYielder = Yielder()
     override suspend fun getAsyncWrite(): AsyncWrite {
         quackLoop.netLoop.await()
+        // throttle probably doesnt work since back pressure
+        // in node will also throttle
+//        quackLoop.netLoop.sleep(50)
+
         if (socket == null)
             writeYielder.yield()
         return socket!!::write
