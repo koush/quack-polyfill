@@ -29,7 +29,7 @@ package com.koushikdutta.quack.polyfill.fs
  *
  * @since 1.7
  */
-enum class StandardOpenOption {
+internal enum class StandardOpenOption {
     /**
      * Open for read access.
      */

@@ -3,24 +3,16 @@ package com.koushikdutta.quack.polyfill
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackContext
 
-
-private val types = mutableMapOf<Class<*>, String>(
-        Pair(Int::class.java, "number"),
-        Pair(String::class.java, "string")
-)
-
-
 private fun Any.`typeof`(): String {
-    if (this is Int)
+    if (this is Number)
         return "number"
     if (this is String)
         return "string"
 
     if (this !is JavaScriptObject)
-        throw AssertionError("Unknown typeof")
+        throw IllegalArgumentException("Unknown typeof $this")
 
-    val jo = this as JavaScriptObject
-    return jo.`typeof`()
+    return `typeof`()
 }
 
 internal class ArgParser(val quack: QuackContext, vararg val arguments: Any?) {
@@ -57,6 +49,10 @@ internal fun ArgParser.Int(): Int? {
     return this<Number?>("number")?.toInt()
 }
 
+internal fun ArgParser.Long(): Long? {
+    return this<Number?>("number")?.toLong()
+}
+
 internal fun ArgParser.String(): String? {
     return this("string")
 }
@@ -69,9 +65,4 @@ internal fun ArgParser.Object(): JavaScriptObject? {
     return this("object")
 }
 
-internal fun <T> ArgParser.Coerce(clazz: Class<T>): T? {
-    val jo = Object()
-    if (jo == null)
-        return null
-    return jo.jsonCoerce(clazz)
-}
+internal fun <T> ArgParser.Coerce(clazz: Class<T>): T? = Object()?.jsonCoerce(clazz)

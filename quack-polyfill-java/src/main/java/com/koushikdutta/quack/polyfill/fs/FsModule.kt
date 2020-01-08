@@ -3,15 +3,14 @@ package com.koushikdutta.quack.polyfill.fs
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackProperty
 import com.koushikdutta.quack.polyfill.*
-import com.koushikdutta.quack.polyfill.ArgParser
-import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import java.io.File
 import java.io.IOException
+import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
 import java.nio.file.OpenOption
 import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
+import java.util.*
 
 
 class Stats {
@@ -53,7 +52,7 @@ class FsModule(val quackLoop: QuackEventLoop) {
         val mode = parse.Int()
         val callback: JavaScriptObject? = parse("function")
 
-        val flagSet = mutableSetOf<OpenOption>()
+        val flagSet = mutableSetOf<StandardOpenOption>()
 
         if (flagsInt != null) {
             for (option in StandardOpenOption.values()) {
@@ -107,7 +106,33 @@ class FsModule(val quackLoop: QuackEventLoop) {
         }
 
         return doIOOperation(callback) {
-            val fc = FileChannel.open(Paths.get(path), *flagSet.toTypedArray())
+            if (flagSet.contains(StandardOpenOption.CREATE_NEW) && File(path).exists())
+                throw IOException("file exists")
+
+            val mode: String
+            if (flagSet.contains(StandardOpenOption.WRITE)) {
+                if (flagSet.contains(StandardOpenOption.DSYNC))
+                    mode = "rws"
+                else if (flagSet.contains(StandardOpenOption.SYNC))
+                    mode = "rwd"
+                else
+                    mode = "rw"
+            }
+            else {
+                mode = "r"
+            }
+
+            val randomAccess = RandomAccessFile(path, mode)
+            val fc = randomAccess.channel
+
+            if (flagSet.contains(StandardOpenOption.TRUNCATE_EXISTING)) {
+                fc.truncate(0)
+            }
+            if (flagSet.contains(StandardOpenOption.APPEND)) {
+                fc.position(fc.size())
+            }
+
+//            val fc = FileChannel.open(Paths.get(path), *flagSet.toTypedArray())
             val file = fdCount++
             fds[file] = fc
 
@@ -175,7 +200,7 @@ class FsModule(val quackLoop: QuackEventLoop) {
         val parse = ArgParser(quackLoop.quack, *arguments)
         val offset = parse.Int()
         val length = parse.Int()
-        val position = parse.Int()
+        val position = parse.Long()
         val callback: JavaScriptObject? = parse("function")
 
         return doIOOperation(callback) {
@@ -188,7 +213,7 @@ class FsModule(val quackLoop: QuackEventLoop) {
             }
             if (position != null) {
                 val curPos = channel.position()
-                written = channel.write(buffer, position.toLong())
+                written = channel.write(buffer, position)
                 channel.position(curPos)
             } else {
                 written = channel.write(buffer)
@@ -227,7 +252,8 @@ class FsModule(val quackLoop: QuackEventLoop) {
         val callback: JavaScriptObject? = parse("function")
 
         return doIOOperation(callback) {
-            val channel = FileChannel.open(Paths.get(path), StandardOpenOption.READ)
+            val channel = RandomAccessFile(path, "r").channel
+//            val channel = FileChannel.open(Paths.get(path), StandardOpenOption.READ)
             val stats = fstatInternal(channel)
             channel.close()
             stats
@@ -240,12 +266,12 @@ class FsModule(val quackLoop: QuackEventLoop) {
 
     fun ftruncate(fd: Int, vararg arguments: Any?): Unit? {
         val parse = ArgParser(quackLoop.quack, *arguments)
-        val len = parse.Int() ?: 0
+        val len = parse.Long() ?: 0
         val callback = parse<JavaScriptObject>("function")
 
         return doIOOperation(callback) {
             val channel = fds[fd]!!
-            channel.truncate(len.toLong())
+            channel.truncate(len)
             null
         }
     }
