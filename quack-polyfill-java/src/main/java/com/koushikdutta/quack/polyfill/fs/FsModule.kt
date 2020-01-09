@@ -159,7 +159,7 @@ class FsModule(val quackLoop: QuackEventLoop) {
         return open(path, *arguments)
     }
 
-    fun read(fd: Int, buffer: ByteBuffer, offset: Int, length: Int, position: Int?, callback: JavaScriptObject?): Int? {
+    fun read(fd: Int, buffer: ByteBuffer, offset: Int, length: Int, position: Long?, callback: JavaScriptObject?): Int? {
         val block: () -> Int = {
             val read: Int
             val channel = fds[fd]!!
@@ -167,7 +167,7 @@ class FsModule(val quackLoop: QuackEventLoop) {
             buffer.lengthLimit(length)
             if (position != null) {
                 val curPos = channel.position()
-                read = channel.read(buffer, position.toLong())
+                read = channel.read(buffer, position)
                 channel.position(curPos)
             } else {
                 read = channel.read(buffer)
@@ -192,7 +192,7 @@ class FsModule(val quackLoop: QuackEventLoop) {
         return null
     }
 
-    fun readSync(fd: Int, buffer: ByteBuffer, offset: Int, length: Int, position: Int?): Int? {
+    fun readSync(fd: Int, buffer: ByteBuffer, offset: Int, length: Int, position: Long?): Int? {
         return read(fd, buffer, offset, length, position, null)
     }
 

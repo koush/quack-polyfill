@@ -9,7 +9,7 @@ import java.util.*
 
 private val gson = GsonBuilder()
         .serializeNulls()
-        .setLongSerializationPolicy(LongSerializationPolicy.STRING)
+        .setLongSerializationPolicy(LongSerializationPolicy.DEFAULT)
         .registerTypeAdapter(Date::class.java, JsonDeserializer<Date> { json: JsonElement, _: Type?, _: JsonDeserializationContext? -> Date(json.asJsonPrimitive.asLong) })
         .registerTypeAdapter(Date::class.java, JsonSerializer<Date> { date: Date, type: Type?, _: JsonSerializationContext? -> JsonPrimitive(date.time) })
         .create()
