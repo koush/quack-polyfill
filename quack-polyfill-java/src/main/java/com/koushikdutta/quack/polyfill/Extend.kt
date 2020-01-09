@@ -30,7 +30,7 @@ internal fun <Super, T> mixinExtend(context: QuackContext,
         var methodName = method.name
         val quackProperty: QuackProperty? = method.getAnnotation(QuackProperty::class.java)
         if (quackProperty != null) {
-            if (method.parameterCount != 0) {
+            if (method.parameterTypes.isNotEmpty()) {
                 methodName = "set ${quackProperty.name}"
                 builder.appendln("${methodName}(value) {")
                 builder.appendln("    return this._internal.${method.name}.apply(this._internal, [value]);")
