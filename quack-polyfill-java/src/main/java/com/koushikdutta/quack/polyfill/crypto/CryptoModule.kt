@@ -4,12 +4,8 @@ import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackMethodObject
 import com.koushikdutta.quack.QuackProperty
 import com.koushikdutta.quack.polyfill.*
-import com.koushikdutta.quack.polyfill.ArgParser
-import com.koushikdutta.quack.polyfill.Int
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.buffers.ByteBuffer
-import java.lang.Exception
-import java.lang.IllegalArgumentException
 import java.security.MessageDigest
 import kotlin.random.Random
 
@@ -60,5 +56,4 @@ class CryptoModule(val quackLoop: QuackEventLoop, modules: Modules) {
             return null
         }
     }
-
 }
