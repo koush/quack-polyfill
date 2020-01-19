@@ -49,5 +49,7 @@ for (var module of Object.keys(defaultModules)) {
 }
 
 const webTorrent = quackRequire('webtorrent');
+const SMB2 = quackRequire('@marsaud/smb2');
 
 console.log(webTorrent);
+console.log(SMB2);

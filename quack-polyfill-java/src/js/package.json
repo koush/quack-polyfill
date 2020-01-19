@@ -4,6 +4,7 @@
   "description": "",
   "main": "main.js",
   "dependencies": {
+    "@marsaud/smb2": "^0.15.0",
     "assert": "^2.0.0",
     "browserify-zlib": "^0.2.0",
     "buffer": "^5.4.3",
