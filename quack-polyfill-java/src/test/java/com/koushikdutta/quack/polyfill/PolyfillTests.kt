@@ -2,6 +2,7 @@ package com.koushikdutta.quack.polyfill
 
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackContext
+import com.koushikdutta.quack.QuackMethodObject
 import com.koushikdutta.quack.polyfill.net.NetModule
 import com.koushikdutta.quack.polyfill.require.EvalScript
 import com.koushikdutta.quack.polyfill.require.Modules
@@ -67,40 +68,6 @@ class PolyfillTests {
         fun onX(x: XMLHttpRequest);
     }
 
-    class Console(var quack: QuackContext, var out: PrintStream, var err: PrintStream) {
-        fun getLog(vararg objects: Any?): String {
-            val b = StringBuilder()
-            for (o in objects) {
-                if (o == null) b.append("null") else b.append(o.toString())
-            }
-            return b.toString()
-        }
-
-        fun log(vararg objects: Any?) {
-            out.println(getLog(*objects))
-        }
-
-        fun error(vararg objects: Any?) {
-            err.println(getLog(*objects))
-        }
-
-        fun warn(vararg objects: Any?) {
-            err.println(getLog(*objects))
-        }
-
-        fun debug(vararg objects: Any?) {
-            err.println(getLog(*objects))
-        }
-
-        fun info(vararg objects: Any?) {
-            err.println(getLog(*objects))
-        }
-
-        fun assert(vararg objects: Any?) {
-            err.println(getLog(*objects))
-        }
-    }
-
     @Test
     fun testSocket() {
         val quackLoop = QuackEventLoop()
@@ -125,7 +92,7 @@ class PolyfillTests {
         }
 
         quackLoop.loop.run()
-        assert(data == "1a1640ee9890e4539525aa8cdcb5d8f8")
+        assert(data == "d41d8cd98f00b204e9800998ecf8427e")
     }
 
     @Test
@@ -247,5 +214,31 @@ class PolyfillTests {
         val jo = quackLoop.quack.evaluateForJavaScriptObject("(function(loop) { var count = 0; setInterval(() => { if (count++ == 3) loop.stop() }, 500) })")
         jo.call(quackLoop.loop);
         quackLoop.loop.run();
+    }
+
+    @Test
+    fun testSnibble() {
+        val quackLoop = QuackEventLoop()
+        quackLoop.quack.waitForDebugger("0.0.0.0:6666")
+        val modules = quackLoop.installDefaultModules(quackLoop.quack.loadModules())
+        quackLoop.quack.globalObject.set("console", Console(quackLoop.quack, System.out, System.err))
+
+        quackLoop.loop.async {
+            val smb2 = modules.require("@marsaud/smb2")
+            val config = quackLoop.quack.evaluateForJavaScriptObject("({})")
+            config["share"] = "\\\\KOUSHIK-WIN.local\\TestShare"
+            config["domain"] = "DOMAIN"
+            config["username"] = "TestUser"
+            config["password"] = "password!"
+            val smb2Client = smb2.construct(config) as JavaScriptObject
+            val ret = smb2Client.callProperty("readdir", "", object : QuackMethodObject {
+                override fun callMethod(thiz: Any?, vararg args: Any?): Any? {
+                    println(args)
+                    return null
+                }
+            })
+            println(ret)
+        }
+        quackLoop.loop.run()
     }
 }

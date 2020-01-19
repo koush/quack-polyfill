@@ -13,14 +13,14 @@
         {
             "type": "quickjs",
             "request": "attach",
-            "name": "Launch QuickJS",
+            "name": "Attach QuickJS",
             "mode": "connect",
-            "address": "192.168.2.44",
+            "address": "192.168.2.7",
             "port": 6666,
-            "remoteRoot": "/webtorrent-dist",
+            "remoteRoot": "${workspaceFolder}/",
             "localRoot": "${workspaceFolder}/",
-            "preLaunchTask": "adb debug",
-            "trace": true
+            // "preLaunchTask": "adb debug",
+            // "trace": true
         }
     ]
 }
