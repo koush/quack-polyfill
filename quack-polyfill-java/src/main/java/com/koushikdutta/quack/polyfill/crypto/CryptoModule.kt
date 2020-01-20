@@ -36,6 +36,10 @@ class Hash(val bufferClass: JavaScriptObject, val messageDigest: MessageDigest) 
     }
 }
 
+class RandomBytes(quackLoop: QuackEventLoop, modules: Modules) {
+
+}
+
 class CryptoModule {
     companion object {
         fun mixin(quackLoop: QuackEventLoop, modules: Modules) {
@@ -43,7 +47,7 @@ class CryptoModule {
             val createHash = crypto["createHash"] as JavaScriptObject
             val bufferClass: JavaScriptObject = modules.require("buffer").get("Buffer") as JavaScriptObject
 
-            crypto["randomBytes"] = object : QuackMethodObject {
+            val randomBytes = object : QuackMethodObject {
                 override fun callMethod(thiz: Any?, vararg args: Any?): Any? {
                     val parser = ArgParser(quackLoop.quack, *args)
                     val size = parser.Int()!!
@@ -57,6 +61,9 @@ class CryptoModule {
                     return null
                 }
             }
+
+            modules["randombytes"] = randomBytes
+            crypto["randomBytes"] = randomBytes
 
             crypto["createHash"] = object : QuackMethodObject {
                 override fun callMethod(thiz: Any?, vararg args: Any?): Any {
