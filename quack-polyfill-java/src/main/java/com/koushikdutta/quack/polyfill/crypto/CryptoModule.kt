@@ -36,10 +36,6 @@ class Hash(val bufferClass: JavaScriptObject, val messageDigest: MessageDigest) 
     }
 }
 
-class RandomBytes(quackLoop: QuackEventLoop, modules: Modules) {
-
-}
-
 class CryptoModule {
     companion object {
         fun mixin(quackLoop: QuackEventLoop, modules: Modules) {
