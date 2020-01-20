@@ -23,6 +23,7 @@ import com.koushikdutta.scratch.http.client.AsyncHttpClient
 import com.koushikdutta.scratch.http.server.AsyncHttpRouter
 import com.koushikdutta.scratch.http.server.AsyncHttpServer
 import com.koushikdutta.scratch.http.server.get
+import com.koushikdutta.scratch.parser.readAllString
 import org.junit.Test
 import java.io.File
 import java.io.PrintStream
@@ -216,10 +217,15 @@ class PolyfillTests {
         quackLoop.loop.run();
     }
 
+    interface SmbClient {
+        fun readdir(path: String): Promise<JavaScriptObject>
+        fun createReadStream(path: String): Promise<JavaScriptObject>
+    }
+
     @Test
     fun testSnibble() {
         val quackLoop = QuackEventLoop()
-        quackLoop.quack.waitForDebugger("0.0.0.0:6666")
+//        quackLoop.quack.waitForDebugger("0.0.0.0:6666")
         val modules = quackLoop.installDefaultModules(quackLoop.quack.loadModules())
         quackLoop.quack.globalObject.set("console", Console(quackLoop.quack, System.out, System.err))
 
@@ -230,14 +236,24 @@ class PolyfillTests {
             config["domain"] = "DOMAIN"
             config["username"] = "TestUser"
             config["password"] = "password!"
-            val smb2Client = smb2.construct(config) as JavaScriptObject
-            val ret = smb2Client.callProperty("readdir", "", object : QuackMethodObject {
-                override fun callMethod(thiz: Any?, vararg args: Any?): Any? {
-                    println(args)
-                    return null
-                }
-            })
-            println(ret)
+            try {
+                val smb2Client = smb2.constructCoerced(SmbClient::class.java, config)
+                val ret = smb2Client.createReadStream("New Text Document.txt")
+//            val ret = smb2Client.callProperty("readdir", "", object : QuackMethodObject {
+//                override fun callMethod(thiz: Any?, vararg args: Any?): Any? {
+//                    println(args)
+//                    return null
+//                }
+//            })
+                val stream = ret.await().proxyInterface(Stream::class.java)
+                val read = stream.createAsyncRead(quackLoop)
+                val str = readAllString(read)
+                println(str)
+            }
+            catch (throwable: Throwable) {
+                throwable.printStackTrace()
+            }
+
         }
         quackLoop.loop.run()
     }

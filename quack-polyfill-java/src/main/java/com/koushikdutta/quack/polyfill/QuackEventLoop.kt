@@ -2,6 +2,7 @@ package com.koushikdutta.quack.polyfill
 
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.QuackContext
+import com.koushikdutta.quack.QuackMethodObject
 import com.koushikdutta.quack.polyfill.crypto.CryptoModule
 import com.koushikdutta.quack.polyfill.dgram.DgramModule
 import com.koushikdutta.quack.polyfill.dns.DnsModule
@@ -12,6 +13,8 @@ import com.koushikdutta.quack.polyfill.os.OSModule
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.quack.polyfill.tls.TlsModule
 import com.koushikdutta.quack.polyfill.xmlhttprequest.XMLHttpRequest
+import com.koushikdutta.scratch.Deferred
+import com.koushikdutta.scratch.Promise
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.event.AsyncEventLoop
 import com.koushikdutta.scratch.http.client.AsyncHttpClient
@@ -61,6 +64,31 @@ class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val 
         quack.putJavaScriptToJavaCoercion(ByteBuffer::class.java) { clazz, o ->
             val jo = o as JavaScriptObject
             jo.toByteBuffer()
+        }
+
+        quack.putJavaScriptToJavaCoercion(Promise::class.java) { clazz, o ->
+            val deferred = Deferred<Any?>()
+            val jo = o as JavaScriptObject
+            jo.callProperty("then", object : QuackMethodObject {
+                override fun callMethod(thiz: Any?, vararg args: Any?): Any? {
+                    deferred.resolve(quack.coerceJavaScriptToJava(null, args[0]))
+                    return null
+                }
+            })
+
+            jo.callProperty("catch", object : QuackMethodObject {
+                override fun callMethod(thiz: Any?, vararg args: Any?): Any? {
+                    try {
+                        quack.throwObject(args[0])
+                    }
+                    catch (throwable: Throwable) {
+                        deferred.reject(throwable)
+                    }
+                    return null
+                }
+            })
+
+            deferred.promise
         }
     }
 
