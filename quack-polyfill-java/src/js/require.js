@@ -7,7 +7,7 @@ function readJsonFile(filename) {
     return JSON.parse(string);
 }
 
-function requireFactory(callingScript) {
+function requireFactory(callingScript, isBrowser) {
     const require = function require(moduleName) {
         const currentPath = path.dirname(callingScript);
         const isPath = moduleName.startsWith('/') || moduleName.startsWith('.') || moduleName.startsWith('\\');
@@ -19,7 +19,7 @@ function requireFactory(callingScript) {
         if (builtins[moduleName])
             return requireBuiltin(moduleName).exports;
 
-        return requireFind(moduleName, currentPath, isPath).exports;
+        return requireFind(moduleName, currentPath, isPath, isBrowser).exports;
     }
 
     require.cache = requireCache;
@@ -40,25 +40,29 @@ function requireLoadInternal(scriptString, exports, __require, newModule, filena
     return newModule;
 }
 
-function requireLoad(scriptString, filename, module) {
-    return requireLoadInternal(scriptString, module.exports, requireFactory(filename), module, filename, path.dirname(filename), process);
+function requireLoad(scriptString, filename, module, isBrowser) {
+    return requireLoadInternal(scriptString, module.exports, requireFactory(filename, isBrowser), module, filename, path.dirname(filename), process);
 }
 
 const builtins = {
     inherits: {
         name: 'inherits',
-        main: './inherits_browser.js',
+        browser: true,
+    },
+    crypto: {
+        name: 'crypto-browserify',
+        browser: true,
     },
     zlib: 'browserify-zlib',
     assert: 'assert',
     url: 'url',
     'builtin-status-codes': {
         name: 'builtin-status-codes',
-        main: './browser.js',
+        browser: true,
     },
     process: {
         name: 'process',
-        main: './browser.js',
+        browser: true,
     },
     os: "os-browserify",
     path: "path-browserify",
@@ -97,19 +101,18 @@ function createModule(fullname) {
         exports: {}
     };
     requireCache[fullname] = module;
-    if (fullname == '/Volumes/Dev/quackfill/quack-polyfill/node/node_modules/webtorrent/package.json')
-        console.log(`creating module ${fullname}`);
     return module;
 }
 
-function requireLoadPackage(fullpath, main) {
+function requireLoadPackage(fullpath, isBrowser) {
     const found = requireCache[fullpath];
     if (found)
         return found;
     const packageJson = readJsonFile(path.join(fullpath, 'package.json'));
     if (!packageJson)
         return;
-    main = path.join(fullpath, main || packageJson.main || 'index.js');
+
+    main = path.join(fullpath, (isBrowser && typeof packageJson.browser == 'string' ? packageJson.browser : packageJson.main) || 'index.js');
     let fileString = readFile(main);
     if (!fileString)
         fileString = readFile(appendScriptExtension(main));
@@ -117,22 +120,33 @@ function requireLoadPackage(fullpath, main) {
         main = path.join(main, 'index.js')
         fileString = readFile(main);
     }
-    const ret = requireLoad(fileString, main, createModule(fullpath));
+    const ret = requireLoad(fileString, main, createModule(fullpath), isBrowser);
     return ret;
 }
 
-function requireFind(name, directory, isPath) {
+function requireFind(name, directory, isPath, isBrowser) {
+    if (isPath) {
+        let fullname = path.join(directory, name);
+        let ret = requireLoadFile(fullname);
+        if (!ret)
+            ret = requireLoadFile(path.join(fullname, 'index.js'))
+        return ret;
+    }
+
     let parent = directory;
 
     do {
         directory = parent;
-        let fullname = path.join(directory, name);
-        let ret = requireLoadFile(fullname);
-        if (ret || isPath)
-            return ret;
-    
+
         let fullpath = path.join(directory, 'node_modules', name);
-        ret = requireLoadPackage(fullpath);
+        let ret = requireLoadPackage(fullpath, isBrowser);
+        if (ret)
+            return ret;
+        if (!ret)
+            ret = requireLoadFile(path.join(fullpath, 'index.js'))
+        if (ret)
+            return ret;
+        ret = requireLoadFile(fullpath);
         if (ret)
             return ret;
 
@@ -144,7 +158,8 @@ function requireFind(name, directory, isPath) {
 
 function requireBuiltin(moduleName) {
     const modulePath = path.join('./node_modules', builtins[moduleName].name || builtins[moduleName]);
-    var ret = requireLoadPackage(modulePath, builtins[moduleName].main);
+    let builtin = builtins[moduleName]
+    var ret = requireLoadPackage(modulePath, builtin && builtin.browser);
     requireCache[moduleName] = ret;
     return ret;
 }
@@ -158,7 +173,6 @@ function requirePath() {
     const pathScript = readFile(pathPath);
     const module = createModule(pathPath);
     const ret = requireLoadInternal(pathScript, module.exports, null, module, pathPath, pathDir);
-    console.log(pathPath)
     if (!ret)
         throw new Error('unable to load path module');
     requireCache[`${pathDir}`] = ret;
@@ -181,6 +195,9 @@ global.Buffer = require('buffer').Buffer;
 const url = require('whatwg-url');
 global.URL = url.URL;
 global.URLSearchParams = url.URLSearchParams;
+
+// need this to fix up a circular reference between util and inherits.
+require('util');
 
 const oldToString = Object.prototype.toString;
 Object.prototype.toString = function() {
