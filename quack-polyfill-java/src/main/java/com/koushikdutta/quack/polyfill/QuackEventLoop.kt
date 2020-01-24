@@ -110,7 +110,12 @@ fun JavaScriptObject.toByteBuffer(): ByteBuffer {
     val byteOffset = get("byteOffset") as Int
     val length = get("length") as Int
     val buffer = get("buffer") as ByteBuffer
+    buffer.slice()
     buffer.position(byteOffset)
     buffer.limit(byteOffset + length)
-    return buffer
+    val sliced = buffer.slice()
+    // since the incoming buffer is keeping the JavaScript ArrayBuffer from being garbage collected,
+    // make sure the sliced buffer keeps it reachable by the GC until it goes out of scope.
+    quackContext.quackMapNative(sliced, buffer)
+    return sliced
 }
