@@ -11,11 +11,11 @@ import com.koushikdutta.scratch.buffers.ByteBufferList
 interface Stream: EventEmitter {
     fun pause()
     fun resume()
-    fun read(): ByteBuffer?
+    fun read(size: Int = 16384): ByteBuffer?
     fun destroy(error: JavaScriptObject? = null)
 }
 
-fun Stream.createAsyncRead(quackEventLoop: QuackEventLoop): AsyncRead {
+fun Stream.createAsyncRead(quackEventLoop: QuackEventLoop, size: Int = 16384): AsyncRead {
     val yielder = Yielder()
     var more = true
     on("readable") {
@@ -35,7 +35,7 @@ fun Stream.createAsyncRead(quackEventLoop: QuackEventLoop): AsyncRead {
     return asyncIterator<ByteBuffer> {
         while (more) {
             quackEventLoop.loop.await()
-            val buffer = read()
+            val buffer = read(size)
             if (buffer == null) {
                 // stream could not fullfill a read request, so yield until the next
                 // readable event.

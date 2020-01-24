@@ -23,7 +23,7 @@ internal fun <T> jsonCoerce(clazz: Class<T>, value: T) : QuackJsonObject {
 }
 
 // move to quack extensions.kt?
-public fun <T> QuackContext.putJavaToJsonCoersion(clazz: Class<T>) {
+fun <T> QuackContext.putJavaToJsonCoersion(clazz: Class<T>) {
     putJavaToJavaScriptCoercion(clazz) { _, o ->
         jsonCoerce(clazz, o)
     }
