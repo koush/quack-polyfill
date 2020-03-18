@@ -26,7 +26,6 @@ open class SocketAddress(val port: Int, inetAddress: InetAddress) {
 }
 
 interface Socket : Duplex {
-    fun close(cb: JavaScriptObject?)
     fun address(): SocketAddress?
 
     @get:QuackProperty(name = "bufferSize")
@@ -87,7 +86,7 @@ internal fun getInetAddressFamily(inetAddress: InetAddress?): String? {
 
 class ServerListenOptions(val port: Int?, val host: String?)
 
-class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val emitter: EventEmitter, val options: CreateServerOptions?): Server {
+class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val emitter: EventEmitter, options: CreateServerOptions?): Server {
     var server: AsyncNetworkServerSocket? = null
 
     override fun close(cb: JavaScriptObject?) {
@@ -96,7 +95,6 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
             server = null
             cb?.postCallSafely(quackLoop)
         }
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     private fun listenInternal(options: ServerListenOptions, callback: JavaScriptObject?) {
@@ -157,13 +155,7 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
 
 open class SocketImpl(override val quackLoop: QuackEventLoop, override val stream: DuplexStream, val options: CreateSocketOptions?): BaseDuplex, Socket {
     var socket: AsyncNetworkSocket? = null
-
-    override fun close(cb: JavaScriptObject?) {
-        quackLoop.netLoop.async {
-            socket?.close()
-            cb?.postCallSafely(quackLoop)
-        }
-    }
+    var created = false
 
     override fun address(): SocketAddress? {
         if (socket == null)
@@ -203,10 +195,11 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
     private fun connectInternal(port: Int, host: String?, connectListener: JavaScriptObject?) {
         quackLoop.netLoop.async {
-            if (socket != null) {
+            if (created) {
                 stream.postEmitError(quackLoop, IllegalStateException("socket already created"))
                 return@async
             }
+            created = true
             connecting = true
             val connectHost = host ?: "localhost"
             try {
@@ -250,9 +243,14 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
     override fun setKeepAlive(enable: Boolean, initialDelay: Int) {
     }
 
+    protected open suspend fun destroyInternal() {
+        socket?.close()
+        socket = null
+    }
+
     override fun _destroy(err: Any?, callback: JavaScriptObject?) {
         quackLoop.netLoop.async {
-            socket?.close()
+            destroyInternal()
             callback?.postCallSafely(quackLoop)
         }
     }

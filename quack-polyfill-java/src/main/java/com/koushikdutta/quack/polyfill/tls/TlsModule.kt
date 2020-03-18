@@ -24,6 +24,12 @@ class TlsSocketImpl(quackLoop: QuackEventLoop, stream: DuplexStream, options: Cr
         return tlsSocket!!.socket as AsyncNetworkSocket
     }
 
+    override suspend fun destroyInternal() {
+        super.destroyInternal()
+        tlsSocket?.close()
+        tlsSocket = null
+    }
+
     override suspend fun getAsyncRead(): AsyncRead {
         super.getAsyncRead()
         return tlsSocket!!::read

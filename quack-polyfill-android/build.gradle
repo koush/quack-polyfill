@@ -6,7 +6,7 @@ buildscript {
     }
     ext.kotlin_version = '1.3.61'
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.3'
+        classpath 'com.android.tools.build:gradle:3.6.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -26,7 +26,7 @@ android {
 
     dependencies {
         api project(":quack:quack-android")
-        api project(":scratch")
+        api project(":scratch:core")
         implementation 'com.google.code.gson:gson:2.8.5'
         testImplementation 'junit:junit:4.12'
         androidTestImplementation 'com.android.support.test:runner:1.0.2'

@@ -97,13 +97,9 @@ interface BaseReadable : Readable {
                     if (buffer.isEmpty)
                         continue
 
-                    val copy = ByteBufferList()
-                    buffer.read(copy)
-
                     // get off the network loop.
-                    val more = quackLoop.loop.async {
-                        stream.push(copy.readByteBuffer())
-                    }.await()
+                    quackLoop.loop.await()
+                    val more = stream.push(buffer.readByteBuffer())
 
                     if (!more)
                         pauser!!.yield()

@@ -67,8 +67,8 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
     override fun close(runnable: Runnable?) {
         quackLoop.netLoop.async {
             try {
-                if (dgram != null)
-                    dgram!!.close()
+                dgram?.close()
+                dgram = null
             }
             catch (e: Exception) {
             }

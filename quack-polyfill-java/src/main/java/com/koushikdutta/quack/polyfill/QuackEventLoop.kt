@@ -49,7 +49,7 @@ class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val 
 
     private fun newSynchronousWorker(prefix: String, maximumPoolSize: Int): ExecutorService {
         val tf: ThreadFactory = NamedThreadFactory(prefix)
-        return ThreadPoolExecutor(1, maximumPoolSize, 10L,
+        return ThreadPoolExecutor(0, maximumPoolSize, 10L,
                 TimeUnit.SECONDS, LinkedBlockingQueue(), tf)
     }
 
