@@ -26,6 +26,8 @@ android {
 
     dependencies {
         api project(":quack:quack-android")
+        implementation project(":scratch:async")
+        implementation project(":scratch:buffer")
         api project(":scratch:core")
         implementation 'com.google.code.gson:gson:2.8.5'
         testImplementation 'junit:junit:4.12'

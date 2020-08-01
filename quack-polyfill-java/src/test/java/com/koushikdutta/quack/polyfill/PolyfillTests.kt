@@ -15,8 +15,8 @@ import com.koushikdutta.scratch.event.AsyncServerRunnable
 import com.koushikdutta.scratch.event.Cancellable
 import com.koushikdutta.scratch.http.AsyncHttpResponse
 import com.koushikdutta.scratch.http.Headers
-import com.koushikdutta.scratch.http.OK
 import com.koushikdutta.scratch.http.ResponseLine
+import com.koushikdutta.scratch.http.StatusCode
 import com.koushikdutta.scratch.http.body.BinaryBody
 import com.koushikdutta.scratch.http.body.Utf8StringBody
 import com.koushikdutta.scratch.http.client.AsyncHttpClient
@@ -101,7 +101,7 @@ class PolyfillTests {
         val quackLoop = QuackEventLoop()
         val modules = quackLoop.installDefaultModules(quackLoop.quack.loadModules())
         val server = AsyncHttpServer {
-            AsyncHttpResponse.OK(body = Utf8StringBody("hello world"))
+            StatusCode.OK(body = Utf8StringBody("hello world"))
         }
 
         var data = ""
@@ -160,7 +160,7 @@ class PolyfillTests {
         }
 
         quackLoop.loop.run()
-        assert(digest == "1a1640ee9890e4539525aa8cdcb5d8f8")
+        assert(digest == "58ab1e7a1658f0756184e39e4a66b0ba")
     }
 
     fun makeJunkRead(): AsyncRead {
@@ -222,7 +222,7 @@ class PolyfillTests {
         fun createReadStream(path: String): Promise<JavaScriptObject>
     }
 
-    @Test
+//    @Test
     fun testSnibble() {
         val quackLoop = QuackEventLoop()
 //        quackLoop.quack.waitForDebugger("0.0.0.0:6666")

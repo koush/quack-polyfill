@@ -22,6 +22,8 @@ repositories {
 dependencies {
     testImplementation 'junit:junit:4.12'
     implementation 'com.google.code.gson:gson:2.8.5'
+    implementation project(":scratch:async")
+    implementation project(":scratch:buffer")
     implementation project(":scratch:core")
     testCompile group: 'junit', name: 'junit', version: '4.12'
     compileOnly project(":quack:quack-java")

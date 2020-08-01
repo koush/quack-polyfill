@@ -86,7 +86,7 @@ class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
         val request = AsyncHttpRequest(URI.create(url!!), method!!, headers = headers)
         client.eventLoop.async {
             try {
-                val httpResponse = client.execute(request)
+                val httpResponse = client(request)
 
                 status = httpResponse.code
                 statusText = httpResponse.message
