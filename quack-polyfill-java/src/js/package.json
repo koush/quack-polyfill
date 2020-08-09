@@ -4,10 +4,11 @@
   "description": "",
   "main": "main.js",
   "dependencies": {
-    "@marsaud/smb2": "^0.15.0",
     "assert": "^2.0.0",
+    "browserify-buffertools": "^1.0.2",
     "browserify-zlib": "^0.2.0",
     "buffer": "^5.4.3",
+    "crypto-browserify": "^3.12.0",
     "events": "^3.0.0",
     "https-browserify": "^1.0.0",
     "os-browserify": "^0.3.0",
@@ -17,15 +18,12 @@
     "querystring-es3": "^1.0.0-0",
     "stream-browserify": "^2.0.2",
     "stream-http": "^3.1.0",
+    "tty-browserify": "0.0.1",
     "url": "^0.11.0",
     "whatwg-url": "^7.1.0"
   },
   "devDependencies": {
-    "axios": "^0.19.0",
-    "memory-chunk-store": "^1.3.0",
-    "multicast-dns": "^7.2.0",
     "webpack": "^4.41.2",
-    "webtorrent": "^0.107.17",
     "zip-webpack-plugin": "^3.0.0"
   },
   "scripts": {

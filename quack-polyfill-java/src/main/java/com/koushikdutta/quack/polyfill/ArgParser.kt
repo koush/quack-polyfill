@@ -15,7 +15,7 @@ private fun Any.`typeof`(): String {
     return `typeof`()
 }
 
-internal class ArgParser(val quack: QuackContext, vararg val arguments: Any?) {
+class ArgParser(val quack: QuackContext, vararg val arguments: Any?) {
     var index = 0
     operator fun <T> invoke(type: String): T? {
         if (index >= arguments.size)
@@ -45,24 +45,24 @@ internal class ArgParser(val quack: QuackContext, vararg val arguments: Any?) {
     }
 }
 
-internal fun ArgParser.Int(): Int? {
+fun ArgParser.Int(): Int? {
     return this<Number?>("number")?.toInt()
 }
 
-internal fun ArgParser.Long(): Long? {
+fun ArgParser.Long(): Long? {
     return this<Number?>("number")?.toLong()
 }
 
-internal fun ArgParser.String(): String? {
+fun ArgParser.String(): String? {
     return this("string")
 }
 
-internal fun ArgParser.Function(): JavaScriptObject? {
+fun ArgParser.Function(): JavaScriptObject? {
     return this("function")
 }
 
-internal fun ArgParser.Object(): JavaScriptObject? {
+fun ArgParser.Object(): JavaScriptObject? {
     return this("object")
 }
 
-internal fun <T> ArgParser.Coerce(clazz: Class<T>): T? = Object()?.jsonCoerce(clazz)
+fun <T> ArgParser.Coerce(clazz: Class<T>): T? = Object()?.jsonCoerce(clazz)

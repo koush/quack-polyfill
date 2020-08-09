@@ -9,10 +9,11 @@ import com.koushikdutta.scratch.buffers.ByteBufferList
 import com.koushikdutta.scratch.event.AsyncServerRunnable
 import com.koushikdutta.scratch.http.AsyncHttpRequest
 import com.koushikdutta.scratch.http.Headers
+import com.koushikdutta.scratch.http.body.Utf8StringBody
 import com.koushikdutta.scratch.http.client.AsyncHttpClient
 import com.koushikdutta.scratch.parser.readAllBuffer
+import com.koushikdutta.scratch.parser.readAllString
 import com.koushikdutta.scratch.uri.URI
-import com.koushikdutta.scratch.uri.URLEncoder
 import java.nio.ByteBuffer
 
 private fun safeRun(runnable: AsyncServerRunnable) {
@@ -28,7 +29,7 @@ interface ErrorCallback {
     fun onError(error: JavaScriptObject)
 }
 
-class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
+class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val context: QuackContext, val client: AsyncHttpClient) {
     @get:QuackProperty(name = "readyState")
     var readyState = 0
         private set
@@ -73,31 +74,43 @@ class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
     @set:QuackProperty(name = "onreadystatechange")
     var onReadyStateChanged: Runnable? = null
 
+    @get:QuackProperty(name = "ontimeout")
+    @set:QuackProperty(name = "ontimeout")
+    var onTimeout: Runnable? = null
+
     @get:QuackProperty(name = "onprogress")
     @set:QuackProperty(name = "onprogress")
     var onProgress: Runnable? = null
 
     private val headers = Headers()
     fun setRequestHeader(key: String, value: String) {
-        headers.set(key, value)
+        headers[key] = value
     }
 
+    private var responseHeaders = Headers()
+
     fun send(requestData: Any?) {
-        val request = AsyncHttpRequest(URI.create(url!!), method!!, headers = headers)
+        val body = if (requestData != null)
+            Utf8StringBody(requestData.toString())
+        else
+            null
+        val request = AsyncHttpRequest(URI.create(url!!), method!!, headers = headers, body = body)
         client.eventLoop.async {
             try {
+                constructor.openRequests++
                 val httpResponse = client(request)
+                responseHeaders = httpResponse.headers
 
                 status = httpResponse.code
                 statusText = httpResponse.message
                 responseURL = request.uri.toString()
 
                 if (responseType == "moz-chunked-arraybuffer") {
-                    val buffer: ByteBufferList = ByteBufferList()
+                    val buffer = ByteBufferList()
 
                     readyState = 3
                     while (httpResponse.body != null && httpResponse.body!!(buffer)) {
-                        notifyProgress(buffer.readByteBuffer())
+                        notifyProgress(buffer.readDirectByteBuffer())
                     }
 
                     response = ByteBuffer.allocate(0)
@@ -105,20 +118,12 @@ class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
                     notifyReadyStateChanged()
                 }
                 else {
-                    val buffer: ByteBufferList
-                    if (httpResponse.body != null) {
-                        buffer = readAllBuffer(httpResponse.body!!)
-                    }
-                    else {
-                        buffer = ByteBufferList()
-                    }
-
                     if (responseType == "text")
-                        responseText = buffer.readUtf8String()
+                        responseText = readAllString(httpResponse.body!!)
                     else if (responseType == "json")
-                        response = makeJson(buffer.readUtf8String())
+                        response = makeJson(readAllString(httpResponse.body!!))
                     else if (responseType == "arraybuffer")
-                        response = buffer.readByteBuffer()
+                        response = readAllBuffer(httpResponse.body!!).readDirectByteBuffer()
 
                     readyState = 4
                     notifyReadyStateChanged()
@@ -128,13 +133,20 @@ class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
                 readyState = 4
                 notifyError(e)
             }
+            finally {
+                constructor.openRequests--
+                onError = null
+                onReadyStateChanged = null
+                onProgress = null
+                onTimeout = null
+            }
         }
     }
 
     fun getAllResponseHeaders(): String {
         val builder = StringBuilder()
-        for (header in headers) {
-            builder.append("${URLEncoder.encode(header.name)}: ${URLEncoder.encode(header.value)}\r\n")
+        for (header in responseHeaders) {
+            builder.append("${header.name}: ${header.value}\r\n")
         }
         builder.append("\r\n")
         return builder.toString()
@@ -176,9 +188,10 @@ class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
         }
     }
 
-    internal class Constructor(val context: QuackContext, val client: AsyncHttpClient) : QuackObject {
+    class XMLHttpRequestConstructor(val context: QuackContext, val client: AsyncHttpClient) : QuackObject {
+        var openRequests = 0
         override fun construct(vararg args: Any): Any {
-            return XMLHttpRequest(context, client)
+            return XMLHttpRequest(this, context, client)
         }
     }
 }

@@ -65,13 +65,15 @@ const builtins = {
         browser: true,
     },
     os: "os-browserify",
-    path: "path-browserify",
+    path: "./path",
     buffer: "buffer",
+    buffertools: "browserify-buffertools",
     https: "https-browserify",
     stream: "stream-browserify",
     http: "stream-http",
     events: 'events',
     util: 'util',
+    tty: 'tty-browserify',
     querystring: 'querystring-es3',
 };
 
@@ -168,8 +170,8 @@ const requireCache = {};
 // require  imeplementation needs the path module, but can't require without path being ready.
 // chicken egg problem.
 function requirePath() {
-    const pathDir = `./node_modules/path-browserify`;
-    const pathPath = `${pathDir}/index.js`;
+    const pathDir = `./`;
+    const pathPath = `${pathDir}/path.js`;
     const pathScript = readFile(pathPath);
     const module = createModule(pathPath);
     const ret = requireLoadInternal(pathScript, module.exports, null, module, pathPath, pathDir);
@@ -184,6 +186,7 @@ const path = requirePath();
 global.global = global;
 
 const require = requireFactory('./require.js');
+require.builtins = builtins;
 
 let process = {};
 process = require('process');

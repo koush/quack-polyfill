@@ -15,9 +15,9 @@ open class CreateSocketOptions {
 open class CreateServerOptions {
 }
 
-class ConnectSocketOptions: CreateSocketOptions() {
+open class ConnectSocketOptions: CreateSocketOptions() {
     var port: Int? = null
-    val host: String = "localhost"
+    var host: String = "localhost"
 }
 
 open class SocketAddress(val port: Int, inetAddress: InetAddress) {
@@ -153,7 +153,7 @@ class ServerImpl(val netModule: NetModule, val quackLoop: QuackEventLoop, val em
     }
 }
 
-open class SocketImpl(override val quackLoop: QuackEventLoop, override val stream: DuplexStream, val options: CreateSocketOptions?): BaseDuplex, Socket {
+open class SocketImpl(val netModule: NetModule, override val quackLoop: QuackEventLoop, override val stream: DuplexStream, val options: CreateSocketOptions?): BaseDuplex, Socket {
     var socket: AsyncNetworkSocket? = null
     var created = false
 
@@ -206,6 +206,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
                 if (connectListener != null)
                     stream.once("connect", connectListener)
                 socket = connectInternal(connectHost, port)
+                netModule.openSockets++
                 connecting = false
                 pending = false
                 stream.postEmitSafely(quackLoop, "connect")
@@ -245,7 +246,10 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
     protected open suspend fun destroyInternal() {
         socket?.close()
-        socket = null
+        if (socket != null) {
+            netModule.openSockets--
+            socket = null
+        }
     }
 
     override fun _destroy(err: Any?, callback: JavaScriptObject?) {
@@ -290,6 +294,8 @@ open class NetModule(val quackLoop: QuackEventLoop, modules: Modules) {
 
     val duplexClass: JavaScriptObject
     val ctx = quackLoop.quack
+    var openSockets = 0
+
     init {
         ctx.putJavaToJavaScriptCoercion(SocketAddress::class.java) { _, o ->
             jsonCoerce(SocketAddress::class.java, o)
@@ -306,7 +312,7 @@ open class NetModule(val quackLoop: QuackEventLoop, modules: Modules) {
             val parser = ArgParser(quackLoop.quack, *arguments)
             val options = parser.Coerce(CreateSocketOptions::class.java)
 
-            SocketImpl(quackLoop, stream, options)
+            SocketImpl(this, quackLoop, stream, options)
         }
 
         serverClass = mixinExtend(ctx, eventEmitterClass, EventEmitter::class.java, Server::class.java, "Server") { eventEmitter, arguments ->
