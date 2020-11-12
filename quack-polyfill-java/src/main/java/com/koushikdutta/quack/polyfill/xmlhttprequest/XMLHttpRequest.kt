@@ -10,6 +10,7 @@ import com.koushikdutta.scratch.event.AsyncServerRunnable
 import com.koushikdutta.scratch.http.AsyncHttpRequest
 import com.koushikdutta.scratch.http.Headers
 import com.koushikdutta.scratch.http.client.AsyncHttpClient
+import com.koushikdutta.scratch.http.client.execute
 import com.koushikdutta.scratch.parser.readAllBuffer
 import com.koushikdutta.scratch.uri.URI
 import com.koushikdutta.scratch.uri.URLEncoder
@@ -86,14 +87,14 @@ class XMLHttpRequest(val context: QuackContext, val client: AsyncHttpClient) {
         val request = AsyncHttpRequest(URI.create(url!!), method!!, headers = headers)
         client.eventLoop.async {
             try {
-                val httpResponse = client.execute(request)
+                val httpResponse = client(request)
 
                 status = httpResponse.code
                 statusText = httpResponse.message
                 responseURL = request.uri.toString()
 
                 if (responseType == "moz-chunked-arraybuffer") {
-                    val buffer: ByteBufferList = ByteBufferList()
+                    val buffer = ByteBufferList()
 
                     readyState = 3
                     while (httpResponse.body != null && httpResponse.body!!(buffer)) {

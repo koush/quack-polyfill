@@ -8,10 +8,7 @@ import com.koushikdutta.scratch.async.AsyncHandler
 import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.buffers.ByteBufferList
-import com.koushikdutta.scratch.event.AsyncDatagramSocket
-import com.koushikdutta.scratch.event.InetAddress
-import com.koushikdutta.scratch.event.InetSocketAddress
-import com.koushikdutta.scratch.event.getByName
+import com.koushikdutta.scratch.event.*
 
 open class UdpAddress(val port: Int, inetAddress: InetAddress) {
     val address: String = inetAddress.toString().replace("/", "")

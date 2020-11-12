@@ -6,6 +6,6 @@ import com.koushikdutta.quack.polyfill.require.Modules
 class OSModule(val quackLoop: QuackEventLoop) {
     var tmpdir = System.getProperty("java.io.tmpdir")
     fun tmpdir(): String {
-        return tmpdir
+        return tmpdir!!
     }
 }

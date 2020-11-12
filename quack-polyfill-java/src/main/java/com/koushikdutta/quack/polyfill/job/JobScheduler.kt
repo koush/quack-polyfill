@@ -3,7 +3,7 @@ package com.koushikdutta.quack.polyfill.job
 import com.koushikdutta.quack.JavaScriptObject
 import com.koushikdutta.quack.polyfill.QuackEventLoop
 import com.koushikdutta.quack.polyfill.callSafely
-import com.koushikdutta.scratch.event.Cancellable
+import com.koushikdutta.scratch.Cancellable
 
 fun QuackEventLoop.installJobScheduler() {
     val script = """

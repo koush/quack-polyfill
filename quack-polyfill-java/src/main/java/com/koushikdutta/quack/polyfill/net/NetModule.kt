@@ -263,7 +263,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
         if (socket == null)
             readYielder.yield()
-        return socket!!::read
+        return socket!!
     }
 
     val writeYielder = Yielder()
@@ -275,7 +275,7 @@ open class SocketImpl(override val quackLoop: QuackEventLoop, override val strea
 
         if (socket == null)
             writeYielder.yield()
-        return socket!!::write
+        return socket!!
     }
 
     override var finalCallback: JavaScriptObject? = null

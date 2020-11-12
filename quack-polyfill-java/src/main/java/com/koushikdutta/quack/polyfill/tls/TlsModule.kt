@@ -32,12 +32,12 @@ class TlsSocketImpl(quackLoop: QuackEventLoop, stream: DuplexStream, options: Cr
 
     override suspend fun getAsyncRead(): AsyncRead {
         super.getAsyncRead()
-        return tlsSocket!!::read
+        return tlsSocket!!
     }
 
     override suspend fun getAsyncWrite(): AsyncWrite {
         super.getAsyncWrite()
-        return tlsSocket!!::write
+        return tlsSocket!!
     }
 }
 
