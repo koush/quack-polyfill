@@ -1,7 +1,6 @@
 package com.koushikdutta.quack.polyfill
 
 import com.koushikdutta.quack.JavaScriptObject
-import com.koushikdutta.quack.QuackContext
 import com.koushikdutta.scratch.*
 import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.buffers.ByteBuffer
@@ -100,7 +99,7 @@ interface BaseReadable : Readable {
 
                     // get off the network loop.
                     quackLoop.loop.await()
-                    val more = stream.push(buffer.readByteBuffer())
+                    val more = stream.push(buffer.readDirectByteBuffer())
 
                     if (!more)
                         pauser!!.yield()

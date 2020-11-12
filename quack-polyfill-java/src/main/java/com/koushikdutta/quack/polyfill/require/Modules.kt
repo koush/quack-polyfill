@@ -6,6 +6,7 @@ interface Modules {
     val require: Require
     operator fun set(name: String, module: Any)
     operator fun get(name: String): Any
+    fun delete(name: String);
 }
 
 fun QuackContext.installModules(readFile: ReadFile, evalScript: EvalScript): Modules {
@@ -22,6 +23,10 @@ fun QuackContext.installModules(readFile: ReadFile, evalScript: EvalScript): Mod
 
         override fun get(name: String): Any {
             return coerceJavaScriptToJava(null, evaluateForJavaScriptObject("(function(require) { return require.cache['$name'].exports })").call(require))
+        }
+
+        override fun delete(name: String) {
+            modules.set(name, null)
         }
     }
 }

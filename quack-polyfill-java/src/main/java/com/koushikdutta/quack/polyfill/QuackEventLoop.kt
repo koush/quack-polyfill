@@ -18,6 +18,8 @@ import com.koushikdutta.scratch.Promise
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.event.AsyncEventLoop
 import com.koushikdutta.scratch.http.client.AsyncHttpClient
+import com.koushikdutta.scratch.http.client.executor.*
+import com.koushikdutta.scratch.tls.*
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -92,6 +94,15 @@ class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val 
         }
     }
 
+    fun installXHR(rejectUnauthorized: Boolean = true): AsyncHttpClient {
+        val client = AsyncHttpClient(netLoop)
+        if (!rejectUnauthorized) {
+            client.schemeExecutor.useInsecureHttpsExecutor(client.eventLoop, resolver = createNetworkResolver(443, client.eventLoop))
+        }
+        quack.globalObject.set("XMLHttpRequest", XMLHttpRequest.XMLHttpRequestConstructor(quack, client))
+        return client
+    }
+
     fun installDefaultModules(modules: Modules): Modules {
         modules["dgram"] = DgramModule(this, modules)
         modules["net"] = NetModule(this, modules)
@@ -100,8 +111,7 @@ class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val 
         modules["os"] = OSModule(this)
         CryptoModule.mixin(this, modules)
         modules["dns"] = DnsModule(this, modules)
-        val client = AsyncHttpClient(netLoop)
-        quack.globalObject.set("XMLHttpRequest", XMLHttpRequest.Constructor(quack, client))
+
         return modules
     }
 }
@@ -114,8 +124,16 @@ fun JavaScriptObject.toByteBuffer(): ByteBuffer {
     buffer.position(byteOffset)
     buffer.limit(byteOffset + length)
     val sliced = buffer.slice()
+
     // since the incoming buffer is keeping the JavaScript ArrayBuffer from being garbage collected,
     // make sure the sliced buffer keeps it reachable by the GC until it goes out of scope.
+
+    // note: i'm actually not sure this is necessary, might be OS dependent. older android
+    // versions seemingly do not seem to handle this correctly.
+    // presumably, the sliced buffer retains a reference to the source buffer.
+    // however, it does map the ByteBuffer back to the exact JavaScriptObject (Buffer or Uint8Array)
+    // if passed back into the runtime.
     quackContext.quackMapNative(sliced, buffer)
+
     return sliced
 }

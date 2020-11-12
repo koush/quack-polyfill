@@ -35,7 +35,7 @@ class CreateDgramOptions {
 }
 
 
-class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClass: JavaScriptObject, val emitter: EventEmitter, internal val options: CreateDgramOptions) : Udp {
+class UdpImpl internal constructor(val dgramModule: DgramModule, val quackLoop: QuackEventLoop, val bufferClass: JavaScriptObject, val emitter: EventEmitter, internal val options: CreateDgramOptions) : Udp {
     var dgram: AsyncDatagramSocket? = null
     val family = options.type!!
     val handler = AsyncHandler(quackLoop.netLoop)
@@ -65,7 +65,10 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
         quackLoop.netLoop.async {
             try {
                 dgram?.close()
-                dgram = null
+                if (dgram != null) {
+                    dgramModule.openSockets--
+                    dgram = null
+                }
             }
             catch (e: Exception) {
             }
@@ -110,6 +113,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
                 addr = null
 
             dgram = quackLoop.netLoop.createDatagram(bindPort, addr, options.reuseAddr)
+            dgramModule.openSockets++
             udpAddress = UdpAddress(dgram!!.localPort, dgram!!.localAddress)
             if (broadcast != null)
                 dgram!!.broadcast = broadcast!!
@@ -128,7 +132,7 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
         try {
             while (true) {
                 val addr = dgram!!.receivePacket(buffer)
-                val b = buffer.readByteBuffer()
+                val b = buffer.readDirectByteBuffer()
                 val rinfo = UdpMessage(addr.port, addr.address, b.remaining())
                 quackLoop.loop.post()
                 emitter.postEmitSafely(quackLoop, "message", bufferClass.callProperty("from", b), jsonCoerce(UdpMessage::class.java, rinfo))
@@ -249,6 +253,8 @@ class UdpImpl internal constructor(val quackLoop: QuackEventLoop, val bufferClas
 class DgramModule(val quackLoop: QuackEventLoop, modules: Modules) {
     val udpClass: JavaScriptObject
     val bufferClass: JavaScriptObject
+    var openSockets = 0
+
     init {
         quackLoop.quack.putJavaToJsonCoersion(UdpAddress::class.java)
         quackLoop.quack.putJavaToJsonCoersion(UdpMessage::class.java)
@@ -257,7 +263,7 @@ class DgramModule(val quackLoop: QuackEventLoop, modules: Modules) {
         bufferClass = modules.require("buffer").get("Buffer") as JavaScriptObject
 
         udpClass = mixinExtend(quackLoop.quack, eventEmitterClass, EventEmitter::class.java, Udp::class.java, "Udp") { emitter, arguments ->
-            UdpImpl(quackLoop, bufferClass, emitter, quackLoop.quack.coerceJavaScriptToJava(CreateDgramOptions::class.java, arguments[0]) as CreateDgramOptions)
+            UdpImpl(this, quackLoop, bufferClass, emitter, quackLoop.quack.coerceJavaScriptToJava(CreateDgramOptions::class.java, arguments[0]) as CreateDgramOptions)
         }
     }
 

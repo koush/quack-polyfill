@@ -43,6 +43,9 @@ class FsModule(val quackLoop: QuackEventLoop) {
     @get:QuackProperty(name = "constants")
     val constants = Constants()
 
+    @get:QuackProperty(name = "length")
+    val length = Integer.MAX_VALUE
+
     var fdCount = 100
     val fds = mutableMapOf<Int, FileChannel>()
     fun open(path: String, vararg arguments: Any?): Int? {
@@ -157,6 +160,22 @@ class FsModule(val quackLoop: QuackEventLoop) {
 
     fun openSync(path: String, vararg arguments: Any?): Int? {
         return open(path, *arguments)
+    }
+
+    fun readFile(path: String, vararg arguments: Any?) {
+        val parse = ArgParser(quackLoop.quack, *arguments)
+        val options = parse.Object()
+        val callback = parse.Function()
+        doIOOperation(callback) {
+            val randomAccess = RandomAccessFile(path, "r")
+            val fc = randomAccess.channel
+            val buffer = ByteBuffer.allocateDirect(fc.size().toInt());
+
+            fc.read(buffer)
+            buffer.flip()
+
+            buffer
+        }
     }
 
     fun read(fd: Int, buffer: ByteBuffer, offset: Int, length: Int, position: Long?, callback: JavaScriptObject?): Int? {
