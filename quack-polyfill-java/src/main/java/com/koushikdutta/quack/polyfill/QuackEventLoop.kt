@@ -13,11 +13,15 @@ import com.koushikdutta.quack.polyfill.os.OSModule
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.quack.polyfill.tls.TlsModule
 import com.koushikdutta.quack.polyfill.xmlhttprequest.XMLHttpRequest
+import com.koushikdutta.scratch.AsyncAffinity
+import com.koushikdutta.scratch.AsyncSocket
 import com.koushikdutta.scratch.Deferred
 import com.koushikdutta.scratch.Promise
 import com.koushikdutta.scratch.buffers.ByteBuffer
 import com.koushikdutta.scratch.event.AsyncEventLoop
+import com.koushikdutta.scratch.http.AsyncHttpRequest
 import com.koushikdutta.scratch.http.client.AsyncHttpClient
+import com.koushikdutta.scratch.http.client.AsyncHttpExecutor
 import com.koushikdutta.scratch.http.client.executor.*
 import com.koushikdutta.scratch.tls.*
 import java.util.concurrent.*
@@ -115,6 +119,36 @@ class QuackEventLoop(val loop: AsyncEventLoop, val netLoop: AsyncEventLoop, val 
         return modules
     }
 }
+
+class HttpsInsecureHostExecutor(affinity: AsyncAffinity, resolver: RequestSocketResolver):
+        HostExecutor<AsyncTlsSocket>(affinity, 443, resolver) {
+
+    override suspend fun upgrade(request: AsyncHttpRequest, socket: AsyncSocket): AsyncTlsSocket {
+        val port = request.getPortOrDefault(443)
+        val host = request.uri.host!!
+        val options = AsyncTlsOptions(object : HostnameVerifier {
+            override fun verify(engine: SSLEngine): Boolean {
+                return true
+            }
+        }, null)
+        return socket.connectTls(host, port, TlsModule.insecureContext, options)
+    }
+
+
+    override suspend fun createConnectExecutor(request: AsyncHttpRequest, connect: ResolvedSocketConnect<AsyncTlsSocket>): AsyncHttpExecutor {
+        return AsyncHttpConnectSocketExecutor(affinity, connect)::invoke
+    }
+}
+
+fun SchemeExecutor.useInsecureHttpsExecutor(affinity: AsyncAffinity,
+                                            resolver: RequestSocketResolver): SchemeExecutor {
+    val https = HttpsInsecureHostExecutor(affinity, resolver)
+
+    register("https", https::invoke)
+    register("wss", https::invoke)
+    return this
+}
+
 
 fun JavaScriptObject.toByteBuffer(): ByteBuffer {
     val byteOffset = get("byteOffset") as Int
