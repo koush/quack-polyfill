@@ -8,9 +8,6 @@ import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
-import java.nio.file.OpenOption
-import java.nio.file.Paths
-import java.util.*
 
 
 class Stats {
@@ -112,20 +109,19 @@ class FsModule(val quackLoop: QuackEventLoop) {
             if (flagSet.contains(StandardOpenOption.CREATE_NEW) && File(path).exists())
                 throw IOException("file exists")
 
-            val mode: String
-            if (flagSet.contains(StandardOpenOption.WRITE)) {
+            val rw = if (flagSet.contains(StandardOpenOption.WRITE)) {
                 if (flagSet.contains(StandardOpenOption.DSYNC))
-                    mode = "rws"
+                    "rws"
                 else if (flagSet.contains(StandardOpenOption.SYNC))
-                    mode = "rwd"
+                    "rwd"
                 else
-                    mode = "rw"
+                    "rw"
             }
             else {
-                mode = "r"
+                "r"
             }
 
-            val randomAccess = RandomAccessFile(path, mode)
+            val randomAccess = RandomAccessFile(path, rw)
             val fc = randomAccess.channel
 
             if (flagSet.contains(StandardOpenOption.TRUNCATE_EXISTING)) {

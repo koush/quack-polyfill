@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
         jcenter()
     }
-    ext.kotlin_version = '1.4.10'
+    ext.kotlin_version = '1.4.20'
     dependencies {
         classpath 'com.android.tools.build:gradle:4.1.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -32,12 +32,7 @@ android {
 
     dependencies {
         api project(":quack:quack-android")
-        implementation project(":scratch:async")
-        api project(":scratch:atomic")
-        api project(":scratch:buffer")
-        implementation project(":scratch:buffer")
-        api project(":scratch:core")
-        api project(":scratch:async")
+        api project(":scratch:http")
         implementation 'com.google.code.gson:gson:2.8.6'
         testImplementation 'junit:junit:4.13.1'
         androidTestImplementation 'com.android.support.test:runner:1.0.2'
