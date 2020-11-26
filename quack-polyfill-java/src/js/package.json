@@ -2,7 +2,6 @@
   "name": "quack-node",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
   "dependencies": {
     "assert": "^2.0.0",
     "browserify-buffertools": "^1.0.2",
@@ -27,6 +26,7 @@
     "zip-webpack-plugin": "^3.0.0"
   },
   "scripts": {
+    "start": "node quackpack.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

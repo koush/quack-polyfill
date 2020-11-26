@@ -21,6 +21,18 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+
+task buildCore(type: Exec) {
+    workingDir '../quack-polyfill-java/src/js/'
+    commandLine "npm", "start"
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == 'generateReleaseBuildConfig') {
+        task.dependsOn buildCore
+    }
+}
+
 android {
     compileSdkVersion 30
 
