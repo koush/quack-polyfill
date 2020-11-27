@@ -11,7 +11,9 @@ import com.koushikdutta.scratch.http.AsyncHttpRequest
 import com.koushikdutta.scratch.http.Headers
 import com.koushikdutta.scratch.http.body.Utf8StringBody
 import com.koushikdutta.scratch.http.client.AsyncHttpClient
+import com.koushikdutta.scratch.http.client.buildUpon
 import com.koushikdutta.scratch.http.client.execute
+import com.koushikdutta.scratch.http.client.followRedirects
 import com.koushikdutta.scratch.parser.readAllBuffer
 import com.koushikdutta.scratch.parser.readAllString
 import com.koushikdutta.scratch.uri.URI
@@ -75,6 +77,10 @@ class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val con
     @set:QuackProperty(name = "onreadystatechange")
     var onReadyStateChanged: Runnable? = null
 
+    @get:QuackProperty(name = "onabort")
+    @set:QuackProperty(name = "onabort")
+    var onAbort: Runnable? = null
+
     @get:QuackProperty(name = "ontimeout")
     @set:QuackProperty(name = "ontimeout")
     var onTimeout: Runnable? = null
@@ -99,7 +105,7 @@ class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val con
         client.eventLoop.async {
             try {
                 constructor.openRequests++
-                val httpResponse = client(request)
+                val httpResponse = client.buildUpon().followRedirects().build()(request)
                 responseHeaders = httpResponse.headers
 
                 status = httpResponse.code
@@ -157,7 +163,7 @@ class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val con
     private var url: String? = null
 
     fun abort() {
-
+        onAbort?.run()
     }
 
     fun open(method: String, url: String, async: Boolean?, password: String?) {
