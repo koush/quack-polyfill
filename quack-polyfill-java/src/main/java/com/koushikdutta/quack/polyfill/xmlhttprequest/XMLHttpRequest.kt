@@ -7,6 +7,7 @@ import com.koushikdutta.quack.QuackProperty
 import com.koushikdutta.scratch.async.async
 import com.koushikdutta.scratch.buffers.ByteBufferList
 import com.koushikdutta.scratch.event.AsyncServerRunnable
+import com.koushikdutta.scratch.event.invoke
 import com.koushikdutta.scratch.http.AsyncHttpRequest
 import com.koushikdutta.scratch.http.Headers
 import com.koushikdutta.scratch.http.body.Utf8StringBody
