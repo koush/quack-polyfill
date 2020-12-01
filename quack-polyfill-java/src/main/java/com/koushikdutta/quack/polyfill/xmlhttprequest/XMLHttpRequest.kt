@@ -11,10 +11,8 @@ import com.koushikdutta.scratch.event.invoke
 import com.koushikdutta.scratch.http.AsyncHttpRequest
 import com.koushikdutta.scratch.http.Headers
 import com.koushikdutta.scratch.http.body.Utf8StringBody
-import com.koushikdutta.scratch.http.client.AsyncHttpClient
-import com.koushikdutta.scratch.http.client.buildUpon
-import com.koushikdutta.scratch.http.client.execute
-import com.koushikdutta.scratch.http.client.followRedirects
+import com.koushikdutta.scratch.http.client.*
+import com.koushikdutta.scratch.http.client.executor.AsyncHttpClientExecutor
 import com.koushikdutta.scratch.parser.readAllBuffer
 import com.koushikdutta.scratch.parser.readAllString
 import com.koushikdutta.scratch.uri.URI
@@ -33,7 +31,7 @@ interface ErrorCallback {
     fun onError(error: JavaScriptObject)
 }
 
-class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val context: QuackContext, val client: AsyncHttpClient) {
+class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val context: QuackContext, val client: AsyncHttpClientExecutor) {
     @get:QuackProperty(name = "readyState")
     var readyState = 0
         private set
@@ -91,8 +89,11 @@ class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val con
     var onProgress: Runnable? = null
 
     private val headers = Headers()
-    fun setRequestHeader(key: String, value: String) {
-        headers[key] = value
+    fun setRequestHeader(key: String, value: String?) {
+        if (value == null)
+            headers.remove(key)
+        else
+            headers[key] = value
     }
 
     private var responseHeaders = Headers()
@@ -103,10 +104,10 @@ class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val con
         else
             null
         val request = AsyncHttpRequest(URI.create(url!!), method!!, headers = headers, body = body)
-        client.eventLoop.async {
+        client.affinity.async {
             try {
                 constructor.openRequests++
-                val httpResponse = client.buildUpon().followRedirects().build()(request)
+                val httpResponse = client(request)
                 responseHeaders = httpResponse.headers
 
                 status = httpResponse.code
@@ -196,10 +197,11 @@ class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val con
         }
     }
 
-    class XMLHttpRequestConstructor(val context: QuackContext, val client: AsyncHttpClient) : QuackObject {
+    class XMLHttpRequestConstructor(val context: QuackContext, val client: AsyncHttpClientExecutor) : QuackObject {
+        val customClient = client.buildUpon().followRedirects().build()
         var openRequests = 0
         override fun construct(vararg args: Any): Any {
-            return XMLHttpRequest(this, context, client)
+            return XMLHttpRequest(this, context, customClient)
         }
     }
 }
