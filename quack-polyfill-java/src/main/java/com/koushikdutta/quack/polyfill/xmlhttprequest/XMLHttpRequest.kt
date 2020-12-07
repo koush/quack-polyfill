@@ -10,6 +10,7 @@ import com.koushikdutta.scratch.event.AsyncServerRunnable
 import com.koushikdutta.scratch.event.invoke
 import com.koushikdutta.scratch.http.AsyncHttpRequest
 import com.koushikdutta.scratch.http.Headers
+import com.koushikdutta.scratch.http.Methods
 import com.koushikdutta.scratch.http.body.Utf8StringBody
 import com.koushikdutta.scratch.http.client.*
 import com.koushikdutta.scratch.http.client.executor.AsyncHttpClientExecutor
@@ -99,11 +100,11 @@ class XMLHttpRequest(private val constructor: XMLHttpRequestConstructor, val con
     private var responseHeaders = Headers()
 
     fun send(requestData: Any?) {
-        val body = if (requestData != null)
-            Utf8StringBody(requestData.toString())
+        val method = Methods.valueOf(method!!)
+        val request = if (requestData != null)
+            method(url!!, headers = headers, body = Utf8StringBody(requestData.toString()))
         else
-            null
-        val request = AsyncHttpRequest(URI.create(url!!), method!!, headers = headers, body = body)
+            method(url!!, headers = headers)
         client.affinity.async {
             try {
                 constructor.openRequests++
