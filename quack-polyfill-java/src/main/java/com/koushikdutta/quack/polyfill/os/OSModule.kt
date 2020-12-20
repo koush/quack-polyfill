@@ -1,11 +1,13 @@
 package com.koushikdutta.quack.polyfill.os
 
-import com.koushikdutta.quack.JavaScriptObject
+import com.koushikdutta.quack.QuackJsonObject
 import com.koushikdutta.quack.polyfill.QuackEventLoop
+import com.koushikdutta.quack.polyfill.gson
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.nio.ByteBuffer
 import java.util.*
+import kotlin.collections.ArrayList
 
 class OSModule(val quackLoop: QuackEventLoop) {
     var tmpdir = System.getProperty("java.io.tmpdir")
@@ -13,17 +15,17 @@ class OSModule(val quackLoop: QuackEventLoop) {
         return tmpdir!!
     }
 
-    fun networkInterfaces(): JavaScriptObject {
-        val ret = quackLoop.quack.evaluateForJavaScriptObject("({})")
+    fun networkInterfaces(): QuackJsonObject {
+        val ret: MutableMap<String, Any>  = mutableMapOf()
         for (ni in NetworkInterface.getNetworkInterfaces()) {
             val name = ni.name
-            var array = ret[name] as JavaScriptObject?
+            var array = ret[name] as ArrayList<Any>?
             if (array == null) {
-                array = quackLoop.quack.evaluateForJavaScriptObject("([])")
+                array = ArrayList()
                 ret[name] = array
             }
             for (addr in ni.interfaceAddresses) {
-                val nia = quackLoop.quack.evaluateForJavaScriptObject("({})")
+                val nia: MutableMap<String, Any>  = mutableMapOf()
                 nia["address"] = addr.address.hostAddress
                 nia["internal"] = ni.isLoopback || ni.isVirtual
                 val bitset = BitSet()
@@ -44,9 +46,9 @@ class OSModule(val quackLoop: QuackEventLoop) {
                     ByteBuffer.allocate(16).put(bitset.toByteArray()).array()
                 }
                 nia["netmask"] = InetAddress.getByAddress(bytes).hostAddress
-                array!!.callProperty("push", nia)
+                array.add(nia)
             }
         }
-        return ret
+        return QuackJsonObject(gson.toJson(ret))
     }
 }

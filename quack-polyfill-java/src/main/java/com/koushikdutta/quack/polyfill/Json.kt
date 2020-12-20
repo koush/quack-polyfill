@@ -7,7 +7,7 @@ import com.koushikdutta.quack.QuackJsonObject
 import java.lang.reflect.Type
 import java.util.*
 
-private val gson = GsonBuilder()
+internal val gson = GsonBuilder()
         .serializeNulls()
         .setLongSerializationPolicy(LongSerializationPolicy.DEFAULT)
         .registerTypeAdapter(Date::class.java, JsonDeserializer<Date> { json: JsonElement, _: Type?, _: JsonDeserializationContext? -> Date(json.asJsonPrimitive.asLong) })

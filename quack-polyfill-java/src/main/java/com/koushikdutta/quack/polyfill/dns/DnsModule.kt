@@ -1,5 +1,6 @@
 package com.koushikdutta.quack.polyfill.dns
 
+import com.koushikdutta.quack.QuackJsonObject
 import com.koushikdutta.quack.polyfill.*
 import com.koushikdutta.quack.polyfill.require.Modules
 import com.koushikdutta.scratch.async.async
@@ -24,9 +25,9 @@ class DnsModule(val quackLoop: QuackEventLoop, val modules: Modules) {
         quackLoop.loop.async {
             try {
                 if (options.all) {
-                    val addresses = quackLoop.quack.evaluateForJavaScriptObject("[]")
-                    getAllByName(hostname).forEach { addresses.callProperty("push", it.hostAddress) }
-                    callback.postCallSafely(quackLoop, null, addresses, 0)
+                    val addresses = ArrayList<Any>()
+                    getAllByName(hostname).forEach { addresses.add(it.hostAddress) }
+                    callback.postCallSafely(quackLoop, null, QuackJsonObject(gson.toJson(addresses)), 0)
                 }
                 else {
                     val addr = getByName(hostname)
