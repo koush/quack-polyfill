@@ -22,7 +22,7 @@
     "whatwg-url": "^7.1.0"
   },
   "devDependencies": {
-    "webpack": "^4.41.2",
+    "webpack": "^5.75.0",
     "zip-webpack-plugin": "^3.0.0"
   },
   "scripts": {
